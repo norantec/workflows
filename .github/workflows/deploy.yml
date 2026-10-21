@@ -201,7 +201,6 @@ jobs:
 
       - name: Publish Java client
         working-directory: sdk/java
-        env: 
         if: |
           ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
         run: |
