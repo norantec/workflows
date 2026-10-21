@@ -4,59 +4,59 @@ on:
   workflow_call:
     inputs:
       production_branch_name:
-        type: true
+        type: string
         description: Production branch name
         required: true
         default: master
 
       development_branch_name:
-        type: true
+        type: string
         description: Development branch name
         required: true
         default: beta
 
       env_request_file:
-        type: true
+        type: string
         description: Path to environment request JSON file
         default: env.json
         required: true
 
       development_openapi_doc_url:
-        type: true
+        type: string
         required: true
 
       production_openapi_doc_url:
-        type: true
+        type: string
         required: true
 
       version_file:
-        type: true
+        type: string
         description: Path to version declaration file
         require: true
         default: VERSION
 
       docker_registry:
-        type: true
+        type: string
         required: true
 
       docker_username:
-        type: true
+        type: string
         required: true
 
       image_name:
-        type: true
+        type: string
         required: true
 
       artifact_id:
-        type: true
+        type: string
         required: true
 
       artifact_domain:
-        type: true
+        type: string
         required: true
 
       service_container_prefix:
-        type: true
+        type: string
         required: true
 
     secrets:
