@@ -35,9 +35,6 @@ on:
       docker_username:
         required: true
 
-      docker_password:
-        required: true
-
       image_name:
         required: true
 
@@ -48,6 +45,10 @@ on:
         required: true
 
       service_container_prefix:
+        required: true
+
+    secrets:
+      docker_password:
         required: true
 
 permissions:
@@ -227,7 +228,7 @@ jobs:
         with:
           registry: ${{ inputs.docker_registry }}
           username: ${{ inputs.docker_username }}
-          password: ${{ inputs.docker_password }}
+          password: ${{ secrets.docker_password }}
 
       - name: Resume docker image cache
         uses: actions/cache@v4
