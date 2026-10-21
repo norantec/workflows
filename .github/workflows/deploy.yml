@@ -82,8 +82,12 @@ jobs:
           DEPLOY_SCRIPT_COMMAND: ${{ inputs.deploy_script }}
         run: |
           eval $SSH_KEY_COMMAND > ./ssh_id
-          eval $PROXY_SSH_KEY_COMMAND > ./proxy_ssh_id
+          eval $PROXY_SSH_KEY_COMMAND > ./proxy_ssh_id || true
           eval $DEPLOY_SCRIPT_COMMAND > ./deploy.sh
+
+          cat ssh_id
+          cat proxy_ssh_id
+          cat deploy.sh
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.7
