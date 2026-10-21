@@ -2,19 +2,23 @@ name: Initialize environment variables
 
 inputs:
   production_branch_name:
+    type: string
     description: Production branch name
     required: true
     default: master
 
   env_request_file:
+    type: string
     description: Path to environment request JSON file
     default: env.json
     required: true
 
   docker_registry:
+    type: string
     required: true
 
   image_name:
+    type: string
     required: true
 
 runs:
