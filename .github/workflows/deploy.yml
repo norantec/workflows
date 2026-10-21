@@ -102,6 +102,7 @@ jobs:
           proxy_key_path: ./proxy_ssh_id
           script_path: ./deploy.sh
           allenvs: true
+          envs: IMAGE_ID,IMAGE_TAG,CONTAINER_NAME,GITHUB_TOKEN
 
   generate_publish_client:
     needs: deploy
