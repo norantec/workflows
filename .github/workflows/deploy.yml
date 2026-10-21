@@ -67,12 +67,16 @@ jobs:
       matrix:
         server: ${{ fromJson(inputs.deploy_hosts) }}
     steps:
+      - name: Check and initialize environment variables
+        uses: norantec/workflows/actions/rematch-versions@main
+        with:
+          tag: ${{ inputs.image_tag }}
+
       - name: Setup environments
         run: |
           IMAGE_ID=${{ inputs.image_id }}
           echo GITHUB_TOKEN=${{ inputs.github_token }} >> $GITHUB_ENV
           echo IMAGE_ID=$IMAGE_ID >> $GITHUB_ENV
-          echo IMAGE_TAG=${{ inputs.image_tag }} >> $GITHUB_ENV
           echo CONTAINER_NAME=${IMAGE_ID##*/} >> $GITHUB_ENV
 
       - name: Setup SSH key
@@ -199,7 +203,7 @@ jobs:
           npm run build
 
           if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
-            npm version ${{ env.RUNTIME_VERSION }}-beta.$(date +%s)
+            npm version ${{ env.RUNTIME_VERSION }}-beta.${{ env.SUBVERSION }}
           else
             npm version ${{ env.RUNTIME_VERSION }}
           fi
