@@ -52,7 +52,7 @@ on:
 
 jobs:
   check:
-    run-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Check and initialize environment variables
         uses: norantec/workflows/actions/rematch-versions@main
