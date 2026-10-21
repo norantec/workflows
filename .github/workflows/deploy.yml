@@ -69,7 +69,7 @@ jobs:
     steps:
       - name: Setup environments
         run: |
-          echo $GITHUB_TOKEN=${{ inputs.github_token }} >> $GITHUB_ENV
+          # echo $GITHUB_TOKEN=${{ inputs.github_token }} >> $GITHUB_ENV
           echo $IMAGE_ID=${{ inputs.image_id }} >> $GITHUB_ENV
           echo $IMAGE_TAG=${{ inputs.image_tag }} >> $GITHUB_ENV
           echo $CONTAINER_NAME=${IMAGE_ID##*/} >> $GITHUB_ENV
