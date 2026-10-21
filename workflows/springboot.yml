@@ -59,7 +59,7 @@ jobs:
           fetch-depth: 2
 
       - name: Initialize environment variables
-        uses: ./init
+        uses: norantec/workflows/actions/init@main
         with:
           production_branch_name: ${{ inputs.production_branch_name }}
           env_request_file: ${{ inputs.env_request_file }}
@@ -118,13 +118,15 @@ jobs:
         run: ls -al
 
       - name: Initialize environment variables
-        uses: ./init
+        uses: norantec/workflows/actions/init@main
         with:
           production_branch_name: ${{ inputs.production_branch_name }}
           env_request_file: ${{ inputs.env_request_file }}
           development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
           production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
           version_file: ${{ inputs.version_file }}
+          docker_registry: ${{ inputs.docker_registry }}
+          image_name: ${{ inputs.image_name }}
 
       - name: Configure Maven settings
         env:
@@ -175,16 +177,16 @@ jobs:
       github.ref_name == ${{ inputs.production_branch_name }} ||
       github.ref_name == ${{ inputs.development_branch_name }}
     steps:
-      - name: Resume env cache
-        uses: actions/cache@v4
+      - name: Initialize environment variables
+        uses: norantec/workflows/actions/init@main
         with:
-          key: env-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .env-actions
-
-      - name: Resume env
-        run: |
-          awk '{ print }' .env-actions >> $GITHUB_ENV
-          rm -f .env-actions
+          production_branch_name: ${{ inputs.production_branch_name }}
+          env_request_file: ${{ inputs.env_request_file }}
+          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
+          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
+          version_file: ${{ inputs.version_file }}
+          docker_registry: ${{ inputs.docker_registry }}
+          image_name: ${{ inputs.image_name }}
 
       - name: Setup Deploy Hosts
         id: setup
@@ -203,16 +205,16 @@ jobs:
       matrix:
         server: ${{ fromJson(needs.prepare_deploy.outputs.DEPLOY_HOSTS) }}
     steps:
-      - name: Resume env cache
-        uses: actions/cache@v4
+      - name: Initialize environment variables
+        uses: norantec/workflows/actions/init@main
         with:
-          key: env-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .env-actions
-
-      - name: Resume env
-        run: |
-          awk '{ print }' .env-actions >> $GITHUB_ENV
-          rm -f .env-actions
+          production_branch_name: ${{ inputs.production_branch_name }}
+          env_request_file: ${{ inputs.env_request_file }}
+          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
+          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
+          version_file: ${{ inputs.version_file }}
+          docker_registry: ${{ inputs.docker_registry }}
+          image_name: ${{ inputs.image_name }}
 
       - name: Login to Aliyun Registry
         uses: docker/login-action@v3
@@ -274,16 +276,16 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Resume env cache
-        uses: actions/cache@v4
+      - name: Initialize environment variables
+        uses: norantec/workflows/actions/init@main
         with:
-          key: env-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .env-actions
-
-      - name: Resume env
-        run: |
-          awk '{ print }' .env-actions >> $GITHUB_ENV
-          rm -f .env-actions
+          production_branch_name: ${{ inputs.production_branch_name }}
+          env_request_file: ${{ inputs.env_request_file }}
+          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
+          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
+          version_file: ${{ inputs.version_file }}
+          docker_registry: ${{ inputs.docker_registry }}
+          image_name: ${{ inputs.image_name }}
 
       - name: Checkout code
         uses: actions/checkout@v3
