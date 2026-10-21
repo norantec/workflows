@@ -6,7 +6,7 @@ inputs:
     required: true
 
 runs:
-  using: compile
+  using: composite
   steps:
     - name: Rematch
       shell: bash
