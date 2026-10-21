@@ -1,0 +1,173 @@
+openapi: 3.1.0
+info:
+  title: API Documentation
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /kv/set:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_kv_set_post_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_kv_set_post_200_response"
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /kv/get:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_kv_get_post_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_kv_get_post_200_response"
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /kv/delete:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_kv_get_post_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_kv_set_post_200_response"
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /lock/setnx:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_lock_setnx_post_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_lock_setnx_post_200_response"
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /lock/get:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_lock_get_post_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_kv_get_post_200_response"
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+components:
+  schemas:
+    _kv_set_post_request:
+      additionalProperties: {}
+      properties:
+        key:
+          minLength: 1
+          type: string
+        namespace:
+          minLength: 1
+          type: string
+        ttl:
+          minimum: 60
+          type: number
+        value:
+          minLength: 1
+          type: string
+      required:
+      - key
+      - namespace
+      - value
+    _lock_setnx_post_200_response:
+      additionalProperties: {}
+      example:
+        data: true
+      properties:
+        data:
+          type: boolean
+      required:
+      - data
+    _kv_get_post_request:
+      additionalProperties: {}
+      properties:
+        key:
+          minLength: 1
+          type: string
+        namespace:
+          minLength: 1
+          type: string
+      required:
+      - key
+      - namespace
+    _lock_get_post_request:
+      additionalProperties: {}
+      properties:
+        key:
+          minLength: 1
+          type: string
+      required:
+      - key
+    _kv_set_post_200_response:
+      additionalProperties: {}
+      example:
+        data: ""
+      properties:
+        data: {}
+      required:
+      - data
+    _lock_setnx_post_request:
+      additionalProperties: {}
+      properties:
+        key:
+          minLength: 1
+          type: string
+        value:
+          minLength: 1
+          type: string
+      required:
+      - key
+      - value
+    _kv_get_post_200_response:
+      additionalProperties: {}
+      example:
+        data: data
+      properties:
+        data:
+          nullable: true
+          type: string
+      required:
+      - data
+
