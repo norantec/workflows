@@ -70,6 +70,9 @@ jobs:
       - name: Setup environments
         run: |
           echo $GITHUB_TOKEN=${{ inputs.github_token }} >> $GITHUB_ENV
+          echo $IMAGE_ID=${{ inputs.image_id }} >> $GITHUB_ENV
+          echo $IMAGE_TAG=${{ inputs.image_tag }} >> $GITHUB_ENV
+          echo $CONTAINER_NAME=${IMAGE_ID##*/} >> $GITHUB_ENV
 
       - name: Setup SSH key
         run: |
@@ -88,16 +91,6 @@ jobs:
           proxy_username: ${{ matrix.server.proxy_username }}
           proxy_port: ${{ matrix.server.proxy_port }}
           proxy_key_path: ./proxy_ssh_id
-          # script: |
-          #   set -e
-          #   POSTFIX=$(echo "${{ inputs.runtime }}" | tr '[:upper:]' '[:lower:]')
-          #   TARGETED_CONTAINER_NAME=${{ inputs.service_container_prefix }}.$POSTFIX
-          #   IMAGE=${{ inputs.image_id }}:${{ inputs.image_tag }}
-          #   docker pull $IMAGE
-          #   docker stop $TARGETED_CONTAINER_NAME || true
-          #   docker rm $TARGETED_CONTAINER_NAME || true
-          #   eval "${{ matrix.server.command }}"
-          #   docker system prune -a -f
           script_path: ./deploy.sh
 
   generate_publish_client:
