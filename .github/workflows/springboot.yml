@@ -4,47 +4,59 @@ on:
   workflow_call:
     inputs:
       production_branch_name:
+        type: true
         description: Production branch name
         required: true
         default: master
 
       development_branch_name:
+        type: true
         description: Development branch name
         required: true
         default: beta
 
       env_request_file:
+        type: true
         description: Path to environment request JSON file
         default: env.json
         required: true
 
       development_openapi_doc_url:
+        type: true
         required: true
 
       production_openapi_doc_url:
+        type: true
         required: true
 
       version_file:
+        type: true
         description: Path to version declaration file
         require: true
         default: VERSION
 
       docker_registry:
+        type: true
         required: true
 
       docker_username:
+        type: true
         required: true
 
       image_name:
+        type: true
         required: true
 
       artifact_id:
+        type: true
         required: true
 
       artifact_domain:
+        type: true
         required: true
 
       service_container_prefix:
+        type: true
         required: true
 
     secrets:
@@ -79,7 +91,7 @@ jobs:
 
       - name: Check version
         if: |
-          github.ref_name == ${{ inputs.secondary_branch_name }}
+          github.ref_name == ${{ inputs.development_branch_name }}
         run: |
           PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=$(git show HEAD~1:VERSION 2>/dev/null) || PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=0.0.0
           PRODUCTION_RUNTIME_VERSION=$(git show origin/${{ inputs.production_branch_name }}:VERSION 2>/dev/null) || PRODUCTION_RUNTIME_VERSION=0.0.0
