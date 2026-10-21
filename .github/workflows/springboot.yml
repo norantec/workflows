@@ -32,6 +32,12 @@ on:
       docker_registry:
         required: true
 
+      docker_username:
+        required: true
+
+      docker_password:
+        required: true
+
       image_name:
         required: true
 
@@ -216,12 +222,12 @@ jobs:
           docker_registry: ${{ inputs.docker_registry }}
           image_name: ${{ inputs.image_name }}
 
-      - name: Login to Aliyun Registry
+      - name: Login to docker registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.ALIYUN_REGISTRY }}
-          username: ${{ env.ALIYUN_USERNAME }}
-          password: ${{ env.ALIYUN_PASSWORD }}
+          registry: ${{ inputs.docker_registry }}
+          username: ${{ inputs.docker_username }}
+          password: ${{ inputs.docker_password }}
 
       - name: Resume docker image cache
         uses: actions/cache@v4
