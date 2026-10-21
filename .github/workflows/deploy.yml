@@ -22,11 +22,6 @@ on:
         required: true
         description: Serialized JSON string for deploy host configs
 
-      runtime:
-        type: string
-        required: true
-        description: Runtime tag, e.g. PRODUCTION/DEVELOPMENT
-
       artifact_id:
         type: string
         required: true
@@ -35,7 +30,7 @@ on:
         type: string
         required: true
 
-      service_container_prefix:
+      deploy_script:
         type: string
         required: true
 
@@ -49,8 +44,9 @@ jobs:
     steps:
       - name: Setup SSH key
         run: |
-          eval "${{ matrix.server.ssh_key }}" -o ./ssh_id
-          eval "${{ matrix.server.proxy_ssh_key }}" -o ./proxy_ssh_id
+          eval "${{ matrix.server.ssh_key }}" > ./ssh_id
+          eval "${{ matrix.server.proxy_ssh_key }}" > ./proxy_ssh_id
+          eval "${{ inputs.deploy_script }}" > ./deploy.sh
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v0.1.7
@@ -63,16 +59,17 @@ jobs:
           proxy_username: ${{ matrix.server.proxy_username }}
           proxy_port: ${{ matrix.server.proxy_port }}
           proxy_key_path: ./proxy_ssh_id
-          script: |
-            set -e
-            POSTFIX=$(echo "${{ inputs.runtime }}" | tr '[:upper:]' '[:lower:]')
-            TARGETED_CONTAINER_NAME=${{ inputs.service_container_prefix }}.$POSTFIX
-            IMAGE=${{ inputs.image_id }}:${{ inputs.image_tag }}
-            docker pull $IMAGE
-            docker stop $TARGETED_CONTAINER_NAME || true
-            docker rm $TARGETED_CONTAINER_NAME || true
-            eval "${{ matrix.server.command }}"
-            docker system prune -a -f
+          # script: |
+          #   set -e
+          #   POSTFIX=$(echo "${{ inputs.runtime }}" | tr '[:upper:]' '[:lower:]')
+          #   TARGETED_CONTAINER_NAME=${{ inputs.service_container_prefix }}.$POSTFIX
+          #   IMAGE=${{ inputs.image_id }}:${{ inputs.image_tag }}
+          #   docker pull $IMAGE
+          #   docker stop $TARGETED_CONTAINER_NAME || true
+          #   docker rm $TARGETED_CONTAINER_NAME || true
+          #   eval "${{ matrix.server.command }}"
+          #   docker system prune -a -f
+          script_path: ./deploy.sh
 
   generate_publish_client:
     needs: deploy
