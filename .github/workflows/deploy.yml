@@ -90,7 +90,7 @@ jobs:
           cat deploy.sh
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v0.1.7
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ matrix.server.host }}
           username: ${{ matrix.server.username }}
@@ -101,6 +101,7 @@ jobs:
           proxy_port: ${{ matrix.server.proxy_port }}
           proxy_key_path: ./proxy_ssh_id
           script_path: ./deploy.sh
+          allenvs: true
 
   generate_publish_client:
     needs: deploy

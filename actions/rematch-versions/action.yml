@@ -23,3 +23,4 @@ runs:
         echo RUNTIME_VERSION=$RUNTIME_VERSION >> $GITHUB_ENV
         echo RUNTIME=$RUNTIME >> $GITHUB_ENV
         echo SUBVERSION=$SUBVERSION >> $GITHUB_ENV
+        echo IMAGE_TAG=${{ inputs.tag }} >> $GITHUB_ENV
