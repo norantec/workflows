@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        server: ${{ fromJson(input.deploy_hosts) }}
+        server: ${{ fromJson(inputs.deploy_hosts) }}
     steps:
       - name: Setup SSH key
         run: |
