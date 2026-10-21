@@ -1,4 +1,4 @@
-name: Build & Deploy SpringBoot Projects
+name: Build SpringBoot Projects
 
 on:
   workflow_call:
@@ -21,14 +21,6 @@ on:
         default: env.json
         required: false
 
-      development_openapi_doc_url:
-        type: string
-        required: true
-
-      production_openapi_doc_url:
-        type: string
-        required: true
-
       version_file:
         type: string
         description: Path to version declaration file
@@ -44,18 +36,6 @@ on:
         required: true
 
       image_name:
-        type: string
-        required: true
-
-      artifact_id:
-        type: string
-        required: true
-
-      artifact_domain:
-        type: string
-        required: true
-
-      service_container_prefix:
         type: string
         required: true
 
@@ -83,9 +63,6 @@ jobs:
         with:
           production_branch_name: ${{ inputs.production_branch_name }}
           env_request_file: ${{ inputs.env_request_file }}
-          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
-          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
-          version_file: ${{ inputs.version_file }}
           docker_registry: ${{ inputs.docker_registry }}
           image_name: ${{ inputs.image_name }}
 
@@ -93,8 +70,8 @@ jobs:
         if: |
           github.ref_name == ${{ inputs.development_branch_name }}
         run: |
-          PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=$(git show HEAD~1:VERSION 2>/dev/null) || PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=0.0.0
-          PRODUCTION_RUNTIME_VERSION=$(git show origin/${{ inputs.production_branch_name }}:VERSION 2>/dev/null) || PRODUCTION_RUNTIME_VERSION=0.0.0
+          PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=$(git show HEAD~1:${{ inputs.version_file }} 2>/dev/null) || PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=0.0.0
+          PRODUCTION_RUNTIME_VERSION=$(git show origin/${{ inputs.production_branch_name }}:${{ inputs.version_file }} 2>/dev/null) || PRODUCTION_RUNTIME_VERSION=0.0.0
 
           echo "Previous development version: $PREVIOUS_DEVELOPMENT_RUNTIME_VERSION"
           echo "Production version: $PRODUCTION_RUNTIME_VERSION"
@@ -143,278 +120,27 @@ jobs:
         with:
           production_branch_name: ${{ inputs.production_branch_name }}
           env_request_file: ${{ inputs.env_request_file }}
-          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
-          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
-          version_file: ${{ inputs.version_file }}
           docker_registry: ${{ inputs.docker_registry }}
           image_name: ${{ inputs.image_name }}
-
-      - name: Configure Maven settings
-        env:
-          GITHUB_USERNAME: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
-        run: |
-          mkdir -p ~/.m2 || true
-          cat > ~/.m2/settings.xml <<'EOF'
-          <settings>
-            <servers>
-              <server>
-                <id>norantec-omni-api</id>
-                <username>${env.GITHUB_USERNAME}</username>
-                <password>${env.GITHUB_TOKEN}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
 
       - name: Build
         run: |
-          npm i --legacy-peer-deps=true
-          npm run build
-          docker build \
-            --file ./Dockerfile \
-            -t ${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }} \
-            -t ${{ env.IMAGE_ID }}:${{ env.RUNTIME }} \
-            --build-arg RUNTIME="$RUNTIME" \
-            --build-arg RUNTIME_VERSION="$IMAGE_TAG" \
-            .
-          docker save \
-            ${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }} \
-            ${{ env.IMAGE_ID }}:${{ env.RUNTIME }} \
-            -o image.tar
-
-      - name: Upload Cache
-        uses: actions/cache@v4
-        with:
-          key: image-${{ env.IMAGE_TAG }}
-          path: image.tar
-
-  prepare_deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    outputs:
-      DEPLOY_HOSTS: ${{ steps.setup.outputs.DEPLOY_HOSTS }}
-    if: |
-      github.ref_name == ${{ inputs.production_branch_name }} ||
-      github.ref_name == ${{ inputs.development_branch_name }}
-    steps:
-      - name: Initialize environment variables
-        uses: norantec/workflows/actions/init@main
-        with:
-          production_branch_name: ${{ inputs.production_branch_name }}
-          env_request_file: ${{ inputs.env_request_file }}
-          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
-          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
-          version_file: ${{ inputs.version_file }}
-          docker_registry: ${{ inputs.docker_registry }}
-          image_name: ${{ inputs.image_name }}
-
-      - name: Setup Deploy Hosts
-        id: setup
-        run: |
-          curl -fsSL \
-            "https://gist.githubusercontent.com/lenconda/aa29c7c08f66a39eb25bf48876f272e1/raw/deploy_hosts.json" \
-            -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
-            | jq -c . \
-            | xargs -0 printf 'DEPLOY_HOSTS=%s\n' >> "$GITHUB_OUTPUT"
-
-  deploy:
-    needs: prepare_deploy
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        server: ${{ fromJson(needs.prepare_deploy.outputs.DEPLOY_HOSTS) }}
-    steps:
-      - name: Initialize environment variables
-        uses: norantec/workflows/actions/init@main
-        with:
-          production_branch_name: ${{ inputs.production_branch_name }}
-          env_request_file: ${{ inputs.env_request_file }}
-          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
-          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
-          version_file: ${{ inputs.version_file }}
-          docker_registry: ${{ inputs.docker_registry }}
-          image_name: ${{ inputs.image_name }}
+          bash ./build.sh
 
       - name: Login to docker registry
+        if: |
+          github.ref_name == ${{ inputs.production_branch_name }} ||
+          github.ref_name == ${{ inputs.development_branch_name }}     
         uses: docker/login-action@v3
         with:
           registry: ${{ inputs.docker_registry }}
           username: ${{ inputs.docker_username }}
           password: ${{ secrets.docker_password }}
 
-      - name: Resume docker image cache
-        uses: actions/cache@v4
-        with:
-          key: image-${{ env.IMAGE_TAG }}
-          path: image.tar
-
-      - name: Push docker image
+      - name: Push images
+        if: |
+          github.ref_name == ${{ inputs.production_branch_name }} ||
+          github.ref_name == ${{ inputs.development_branch_name }}
         run: |
-          docker load -i image.tar
-          rm -f image.tar
           docker push ${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }}
           docker push ${{ env.IMAGE_ID }}:${{ env.RUNTIME }}
-
-      - name: Setup SSH key
-        env:
-          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
-        run: |
-          curl -L "https://gist.githubusercontent.com/lenconda/aa29c7c08f66a39eb25bf48876f272e1/raw/id_ed25519" -H "Authorization: token $GITHUB_TOKEN" -o ./.id_ed25519
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ matrix.server.host }}
-          username: ${{ matrix.server.username }}
-          port: ${{ matrix.server.port }}
-          key_path: ${{ matrix.server.key_path }}
-          proxy_host: ${{ matrix.server.proxy_host }}
-          proxy_username: ${{ matrix.server.proxy_username }}
-          proxy_port: ${{ matrix.server.proxy_port }}
-          proxy_key_path: ${{ matrix.server.proxy_key_path }}
-          script: |
-            set -e
-            POSTFIX=$(echo "${{ env.RUNTIME }}" | tr '[:upper:]' '[:lower:]')
-            TARGETED_CONTAINER_NAME=${{ inputs.service_container_prefix }}.$POSTFIX
-            IMAGE=${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }}
-            docker pull $IMAGE
-            docker stop $TARGETED_CONTAINER_NAME || true
-            docker rm $TARGETED_CONTAINER_NAME || true
-            docker run \
-              -d \
-              --restart always \
-              --name $TARGETED_CONTAINER_NAME \
-              -e GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
-              -e DB_PASSWORD=${{ env.DB_PASSWORD }} \
-              -e NORANTEC_WORKER_APPLICATION_ID=5865e0d0-c468-4c78-a1ec-41d39dd36cac \
-              -e NORANTEC_WORKER_APPLICATION_SECRET=${{ secrets.NORANTEC_WORKER_APPLICATION_SECRET }} \
-              $IMAGE
-            docker system prune -a -f
-
-  generate_publish_client:
-    needs: deploy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Initialize environment variables
-        uses: norantec/workflows/actions/init@main
-        with:
-          production_branch_name: ${{ inputs.production_branch_name }}
-          env_request_file: ${{ inputs.env_request_file }}
-          development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
-          production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
-          version_file: ${{ inputs.version_file }}
-          docker_registry: ${{ inputs.docker_registry }}
-          image_name: ${{ inputs.image_name }}
-
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '24'
-          registry-url: 'https://npm.pkg.github.com/'
-
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Generate client code
-        id: generate
-        run: |
-          set -euo pipefail
-
-          ATTEMPT=0
-
-          while true; do
-            ATTEMPT=$(( ATTEMPT + 1 ))
-            ONLINE_IMAGE_TAG=$(curl -fsSL "$OPEN_API_DOC_URL" | jq -er '.info.version') || ONLINE_IMAGE_TAG=""
-
-            if [[ "$ATTEMPT" -ge 60 ]]; then
-              echo "Timedout for fetching online version"
-              exit 1
-            fi
-
-            if [[ -z "$ONLINE_IMAGE_TAG" ]]; then
-              sleep 20
-              continue
-            fi
-
-            echo "Runtime image tag: $IMAGE_TAG"
-            echo "Remote image tag: $ONLINE_IMAGE_TAG"
-
-            if [ "$ONLINE_IMAGE_TAG" = "$IMAGE_TAG" ]; then
-              echo "Versions match. Continue."
-              break
-            fi
-
-            LOWER_IMAGE_TAG=$(printf '%s\n' "$IMAGE_TAG" "$ONLINE_IMAGE_TAG" | sort -V | head -n 1)
-
-            if [ "$LOWER_IMAGE_TAG" = "$IMAGE_TAG" ]; then
-              echo "Current version is outdated. Skip remaining jobs."
-              echo "HAS_NEXT=false" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-
-            echo "Waiting for remote version to catch up..."
-            sleep 20
-          done
-
-          # TypeScript + Axios
-          npx @openapitools/openapi-generator-cli generate \
-            -i "$OPEN_API_DOC_URL" \
-            -g typescript-axios \
-            -o "./.sdk/typescript/src" \
-            --skip-validate-spec \
-            --type-mappings Null=null
-
-          # Java
-          npx @openapitools/openapi-generator-cli generate \
-            -i "$OPEN_API_DOC_URL" \
-            -g java \
-            --skip-validate-spec \
-            -o "./.sdk/java" \
-            --type-mappings null=Object \
-            --additional-properties="groupId=${{ inputs.artifact_id }},artifactId=${ARTIFACT_ID},apiPackage=${{ inputs.artifact_domain }}.api,modelPackage=${{ inputs.artifact_domain }}.model,invokerPackage=${{ inputs.artifact_domain }}"
-
-      - name: Publish TypeScript client
-        working-directory: .sdk/typescript
-        env:
-          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
-        if: |
-          ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
-        run: |
-          npm install --legacy-peer-deps=true
-          npm run build
-          npm version "${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && format('-beta.{0}.{1}', github.run_number, github.run_attempt) || '' }}" --no-git-tag-version
-          npm publish --tag latest
-
-      - name: Publish Java client
-        working-directory: .sdk/java
-        if: |
-          ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
-        run: |
-          mkdir -p ~/.m2 || true
-
-          cat > ~/.m2/settings.xml << EOF
-          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
-            <servers>
-              <server>
-                <id>github</id>
-                <username>${{ github.repository_owner }}</username>
-                <password>${{ env.GITHUB_TOKEN }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
-
-          mvn org.codehaus.mojo:versions-maven-plugin:set -DnewVersion="${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && '-SNAPSHOT' || '' }}" -DgenerateBackupPoms=false
-          mvn deploy \
-            -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \
-            -DrepositoryId=github

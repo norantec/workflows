@@ -1,0 +1,190 @@
+name: Manually Deploy Services and Generate Clients
+
+on:
+  workflow_dispatch:
+    inputs:
+      openapi_doc_url:
+        type: string
+        required: true
+
+      image_id:
+        type: string
+        description: Docker image URL
+        required: true
+
+      image_tag:
+        type: string
+        description: Docker image tag
+        required: true
+
+      deploy_hosts:
+        type: string
+        required: true
+        description: Serialized JSON string for deploy host configs
+
+      runtime:
+        type: string
+        required: true
+        description: Runtime tag, e.g. PRODUCTION/DEVELOPMENT
+
+      artifact_id:
+        type: string
+        required: true
+
+      artifact_domain:
+        type: string
+        required: true
+
+      service_container_prefix:
+        type: string
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ${{ fromJson(input.deploy_hosts) }}
+    steps:
+      - name: Setup SSH key
+        run: |
+          eval "${{ matrix.server.ssh_key }}" -o ./ssh_id
+          eval "${{ matrix.server.proxy_ssh_key }}" -o ./proxy_ssh_id
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ matrix.server.host }}
+          username: ${{ matrix.server.username }}
+          port: ${{ matrix.server.port }}
+          key_path: ./ssh_id
+          proxy_host: ${{ matrix.server.proxy_host }}
+          proxy_username: ${{ matrix.server.proxy_username }}
+          proxy_port: ${{ matrix.server.proxy_port }}
+          proxy_key_path: ./proxy_ssh_id
+          script: |
+            set -e
+            POSTFIX=$(echo "${{ inputs.runtime }}" | tr '[:upper:]' '[:lower:]')
+            TARGETED_CONTAINER_NAME=${{ inputs.service_container_prefix }}.$POSTFIX
+            IMAGE=${{ inputs.image_id }}:${{ inputs.image_tag }}
+            docker pull $IMAGE
+            docker stop $TARGETED_CONTAINER_NAME || true
+            docker rm $TARGETED_CONTAINER_NAME || true
+            eval "${{ matrix.server.command }}"
+            docker system prune -a -f
+
+  generate_publish_client:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '24'
+          registry-url: 'https://npm.pkg.github.com/'
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate client code
+        id: generate
+        run: |
+          set -euo pipefail
+
+          ATTEMPT=0
+
+          while true; do
+            ATTEMPT=$(( ATTEMPT + 1 ))
+            ONLINE_IMAGE_TAG=$(curl -fsSL "${{ inputs.openapi_doc_url }}" | jq -er '.info.version') || ONLINE_IMAGE_TAG=""
+
+            if [[ "$ATTEMPT" -ge 60 ]]; then
+              echo "Timedout for fetching online version"
+              exit 1
+            fi
+
+            if [[ -z "$ONLINE_IMAGE_TAG" ]]; then
+              sleep 20
+              continue
+            fi
+
+            echo "Runtime image tag: $IMAGE_TAG"
+            echo "Remote image tag: $ONLINE_IMAGE_TAG"
+
+            if [ "$ONLINE_IMAGE_TAG" = "$IMAGE_TAG" ]; then
+              echo "Versions match. Continue."
+              break
+            fi
+
+            LOWER_IMAGE_TAG=$(printf '%s\n' "$IMAGE_TAG" "$ONLINE_IMAGE_TAG" | sort -V | head -n 1)
+
+            if [ "$LOWER_IMAGE_TAG" = "$IMAGE_TAG" ]; then
+              echo "Current version is outdated. Skip remaining jobs."
+              echo "HAS_NEXT=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            echo "Waiting for remote version to catch up..."
+            sleep 20
+          done
+
+          # TypeScript + Axios
+          npx @openapitools/openapi-generator-cli generate \
+            -i "${{ inputs.openapi_doc_url }}" \
+            -g typescript-axios \
+            -o "./.sdk/typescript/src" \
+            --skip-validate-spec \
+            --type-mappings Null=null
+
+          # Java
+          npx @openapitools/openapi-generator-cli generate \
+            -i "${{ inputs.openapi_doc_url }}" \
+            -g java \
+            --skip-validate-spec \
+            -o "./.sdk/java" \
+            --type-mappings null=Object \
+            --additional-properties="groupId=${{ inputs.artifact_id }},artifactId=${ARTIFACT_ID},apiPackage=${{ inputs.artifact_domain }}.api,modelPackage=${{ inputs.artifact_domain }}.model,invokerPackage=${{ inputs.artifact_domain }}"
+
+      - name: Publish TypeScript client
+        working-directory: .sdk/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+        if: |
+          ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
+        run: |
+          npm install --legacy-peer-deps=true
+          npm run build
+          npm version "${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && format('-beta.{0}.{1}', github.run_number, github.run_attempt) || '' }}" --no-git-tag-version
+          npm publish --tag latest
+
+      - name: Publish Java client
+        working-directory: .sdk/java
+        if: |
+          ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
+        run: |
+          mkdir -p ~/.m2 || true
+
+          cat > ~/.m2/settings.xml << EOF
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                https://maven.apache.org/xsd/settings-1.0.0.xsd">
+            <servers>
+              <server>
+                <id>github</id>
+                <username>${{ github.repository_owner }}</username>
+                <password>${{ env.GITHUB_TOKEN }}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
+
+          mvn org.codehaus.mojo:versions-maven-plugin:set -DnewVersion="${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && '-SNAPSHOT' || '' }}" -DgenerateBackupPoms=false
+          mvn deploy \
+            -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \
+            -DrepositoryId=github
