@@ -51,7 +51,7 @@ runs:
     - name: Setup environment
       shell: bash
       run: |
-        if [[ "${{ inputs.runtime }}" != "DEVELOPMENT" || "${{ inputs.runtime }}" != "PRODUCTION" ]]; then
+        if [[ "${{ inputs.runtime }}" != "DEVELOPMENT" && "${{ inputs.runtime }}" != "PRODUCTION" ]]; then
           echo "Invalid runtime value, expected DEVELOPMENT/PRODUCTION, got ${{ inputs.runtime }}"
           exit 1
         fi
