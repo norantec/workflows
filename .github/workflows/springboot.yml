@@ -62,7 +62,7 @@ permissions:
   id-token: write
 
 jobs:
-  check:
+  init:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -72,9 +72,11 @@ jobs:
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
+        with:
+          disable_check_version: false
 
   build:
-    needs: check
+    needs: init
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
