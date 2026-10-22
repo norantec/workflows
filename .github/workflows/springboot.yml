@@ -139,6 +139,7 @@ jobs:
     needs: build
     uses: norantec/workflows/.github/workflows/deploy.yml@main
     with:
+      version: ${{ env.RUNTIME_VERSION }}
       production_branch_name: ${{ inputs.production_branch_name }}
       image_name: ${{ inputs.image_name }}
       production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}

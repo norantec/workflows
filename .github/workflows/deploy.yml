@@ -39,16 +39,25 @@ on:
         required: false
         default: false
 
+      version:
+        type: string
+        required: false
+        default: ''
+
 jobs:
   init:
     runs-on: ubuntu-latest
     outputs:
       DEPLOY_HOSTS: ${{ steps.setup_hosts.outputs.DEPLOY_HOSTS }}
     steps:
+      - name: Set version environment variable
+        run: |
+          echo $RUNTIME_VERSION=${{ inputs.version }} >> $GITHUB_ENV
+
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
         with:
-          disable_check_version: false
+          disable_version_action: ${{ inputs.version != '' }}
 
       - name: Prepare deploy hosts
         id: setup_hosts

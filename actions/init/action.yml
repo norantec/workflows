@@ -24,11 +24,17 @@ inputs:
     required: false
     default: true
 
+  disable_version_action:
+    type: boolean
+    required: false
+    default: false
+
 runs:
   using: composite
   steps:
     - name: Check version
       uses: norantec/workflows/actions/check-version@main
+      if: ${{ inputs.disable_version_action != true }}
       with:
         production_branch_name: ${{ inputs.production_branch_name }}
         development_branch_name: ${{ inputs.development_branch_name }}
