@@ -142,31 +142,20 @@ jobs:
           npm i --legacy-peer-deps=true
           npm run build
 
-          docker build \
-            --file ./Dockerfile \
-            -t ${IMAGE_ID}:${IMAGE_TAG} \
-            -t ${IMAGE_ID}:${RUNTIME} \
-            --build-arg RUNTIME="$RUNTIME" \
-            --build-arg RUNTIME_VERSION="$IMAGE_TAG" \
-            .
-
-      - name: Login to docker registry
+      - name: Create and push docker image
         if: |
           github.ref_name == ${{ inputs.production_branch_name }} ||
           github.ref_name == ${{ inputs.development_branch_name }}     
-        uses: docker/login-action@v3
+        uses: norantec/workflows/actions/init@main
         with:
+          image_name: ${{ inputs.image_name }}
+          registry_namespace: ${{ env.ALIYUN_REGISTRY_NAMESPACE }}
           registry: ${{ env.ALIYUN_REGISTRY_ID }}
           username: ${{ env.ALIYUN_REGISTRY_USERNAME }}
           password: ${{ env.ALIYUN_REGISTRY_PASSWORD }}
-
-      - name: Push images
-        if: |
-          github.ref_name == ${{ inputs.production_branch_name }} ||
-          github.ref_name == ${{ inputs.development_branch_name }}
-        run: |
-          docker push ${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }}
-          docker push ${{ env.IMAGE_ID }}:${{ env.RUNTIME }}
+          runtime: ${{ env.RUNTIME }}
+          version: ${{ env.RUNTIME_VERSION }}
+          subversion: ${{ github.run_number }}.${{ github.run_attempt }}
 
   deploy_and_generate_clients:
     needs: build

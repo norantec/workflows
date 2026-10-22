@@ -1,0 +1,94 @@
+name: Create and push docker images
+
+inputs:
+  image_name:
+    type: string
+    required: true
+
+  registry_namespace:
+    type: string
+    required: false
+    default: ''
+
+  registry:
+    type: string
+    required: false
+    default: docker.io
+
+  version:
+    type: string
+    required: true
+
+  runtime:
+    type: string
+    required: true
+
+  subversion:
+    type: string
+    required: true
+
+  username:
+    type: string
+    required: true
+
+  password:
+    type: string
+    required: true
+
+  disable_push:
+    type: boolean
+    required: false
+    default: false
+
+  dockerfile:
+    type: string
+    required: false
+    default: ./Dockerfile
+
+runs:
+  using: composite
+  steps:
+    - name: Setup environment
+      shell: bash
+      run: |
+        if [[ "${{ inputs.runtime }}" != "DEVELOPMENT" || "${{ inputs.runtime }}" != "PRODUCTION" ]]; then
+          echo "Invalid runtime value, expected DEVELOPMENT/PRODUCTION, got ${{ inputs.runtime }}"
+          exit 1
+        fi
+
+        IMAGE_ID=${{ inputs.registry }}
+
+        if [[ "${{ inputs.registry_namespace }}" != "" ]]; then
+          IMAGE_ID=$IMAGE_ID/${{ inputs.registry_namespace }}
+        fi
+
+        IMAGE_ID=$IMAGE_ID/${{ inputs.image_name }}
+
+        echo IMAGE_ID=$IMAGE_ID >> $GITHUB_ENV
+        echo IMAGE_TAG=${{ inputs.version }}-${{ inputs.runtime }}.${{ inputs.subversion }} >> $GITHUB_ENV
+        echo RUNTIME=${{ inputs.runtime }} >> $GITHUB_ENV
+
+    - name: Build with dockerfile
+      shell: bash
+      run: |
+        docker build \
+          --file ${{ inputs.dockerfile }} \
+          -t ${IMAGE_ID}:${IMAGE_TAG} \
+          -t ${IMAGE_ID}:${RUNTIME} \
+          --build-arg RUNTIME="$RUNTIME" \
+          --build-arg RUNTIME_VERSION="$IMAGE_TAG" \
+          .
+
+    - name: Login to docker registry
+      if: ${{ inputs.disable_push != true }} 
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
+
+    - name: Push image
+      shell: bash
+      run: |
+        docker push ${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }}
+        docker push ${{ env.IMAGE_ID }}:${{ env.RUNTIME }}
