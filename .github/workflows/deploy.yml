@@ -206,7 +206,7 @@ jobs:
           npm run build
 
           if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
-            npm version ${{ env.RUNTIME_VERSION }}-beta.${{ env.SUBVERSION }}
+            npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }}
           else
             npm version ${{ env.RUNTIME_VERSION }}
           fi
