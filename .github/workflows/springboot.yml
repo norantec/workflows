@@ -78,6 +78,8 @@ jobs:
   build:
     needs: init
     runs-on: ubuntu-latest
+    outputs:
+      RUNTIME_VERSION: ${{ steps.outputs.outputs.RUNTIME_VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -102,6 +104,11 @@ jobs:
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
+
+      - name: Outputs
+        id: outputs
+        run: |
+          echo RUNTIME_VERSION=${{ env.RUNTIME_VERSION }} >> $GITHUB_OUTPUT
 
       - name: Build
         run: |
@@ -139,7 +146,7 @@ jobs:
     needs: build
     uses: norantec/workflows/.github/workflows/deploy.yml@main
     with:
-      version: ${{ env.RUNTIME_VERSION }}
+      version: ${{ needs.build.outputs.RUNTIME_VERSION }}
       production_branch_name: ${{ inputs.production_branch_name }}
       image_name: ${{ inputs.image_name }}
       production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
