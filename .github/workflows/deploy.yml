@@ -75,6 +75,11 @@ jobs:
       matrix:
         server: ${{ fromJson(needs.init.outputs.DEPLOY_HOSTS) }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
 
