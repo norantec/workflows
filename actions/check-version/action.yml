@@ -32,7 +32,7 @@ runs:
       run: |
         RUNTIME_VERSION=$(cat ${{ inputs.version_file }})
 
-        if [[ ${{ inputs.disable_check_version }} != true ]]; then
+        if [[ "${{ inputs.disable_check_version }}" != "true" ]]; then
           echo "Checking version..."
           PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=$(git show HEAD~1:${{ inputs.version_file }} 2>/dev/null) || PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=0.0.0
           PRODUCTION_RUNTIME_VERSION=$(git show origin/${{ inputs.production_branch_name }}:${{ inputs.version_file }} 2>/dev/null) || PRODUCTION_RUNTIME_VERSION=0.0.0

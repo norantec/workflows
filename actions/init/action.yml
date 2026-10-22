@@ -34,7 +34,7 @@ runs:
   steps:
     - name: Check version
       uses: norantec/workflows/actions/check-version@main
-      if: ${{ inputs.disable_version_action != true }}
+      if: ${{ inputs.disable_version_action != 'true' }}
       with:
         production_branch_name: ${{ inputs.production_branch_name }}
         development_branch_name: ${{ inputs.development_branch_name }}

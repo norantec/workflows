@@ -50,6 +50,11 @@ jobs:
     outputs:
       DEPLOY_HOSTS: ${{ steps.setup_hosts.outputs.DEPLOY_HOSTS }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
       - name: Set version environment variable
         run: |
           echo RUNTIME_VERSION=${{ inputs.version }} >> $GITHUB_ENV
@@ -69,7 +74,7 @@ jobs:
   deploy:
     needs: init
     runs-on: ubuntu-latest
-    if: ${{ inputs.disable_deploy != true }}
+    if: ${{ inputs.disable_deploy != 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -77,8 +82,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
@@ -121,7 +124,7 @@ jobs:
 
   generate_publish_client:
     needs: deploy
-    if: ${{ inputs.disable_generate_clients != true }}
+    if: ${{ inputs.disable_generate_clients != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
