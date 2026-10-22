@@ -15,27 +15,39 @@ on:
         required: false
         default: beta
 
-      env_request_file:
-        type: string
-        description: Path to environment request JSON file
-        default: env.json
-        required: false
-
       version_file:
         type: string
         description: Path to version declaration file
         required: false
         default: VERSION
 
-      docker_registry:
-        type: string
-        required: true
-
-      docker_username:
-        type: string
-        required: true
-
       image_name:
+        type: string
+        required: true
+
+      disable_deploy:
+        type: boolean
+        required: false
+        default: false
+
+      disable_generate_clients:
+        type: boolean
+        required: false
+        default: false
+
+      production_openapi_doc_url:
+        type: string
+        required: true
+
+      development_openapi_doc_url:
+        type: string
+        required: true
+
+      java_artifact_id:
+        type: string
+        required: true
+
+      java_artifact_domain:
         type: string
         required: true
 
@@ -60,11 +72,6 @@ jobs:
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
-        with:
-          production_branch_name: ${{ inputs.production_branch_name }}
-          env_request_file: ${{ inputs.env_request_file }}
-          docker_registry: ${{ inputs.docker_registry }}
-          image_name: ${{ inputs.image_name }}
 
       - name: Check version
         if: |
@@ -117,15 +124,31 @@ jobs:
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
-        with:
-          production_branch_name: ${{ inputs.production_branch_name }}
-          env_request_file: ${{ inputs.env_request_file }}
-          docker_registry: ${{ inputs.docker_registry }}
-          image_name: ${{ inputs.image_name }}
 
       - name: Build
         run: |
-          bash ./build.sh
+          cat > ~/.m2/settings.xml <<'EOF'
+          <settings>
+          <servers>
+            <server>
+            <id>norantec-omni-api</id>
+            <username>${env.GITHUB_USERNAME}</username>
+            <password>${env.GITHUB_TOKEN}</password>
+            </server>
+          </servers>
+          </settings>
+          EOF
+
+          npm i --legacy-peer-deps=true
+          npm run build
+
+          docker build \
+            --file ./Dockerfile \
+            -t ${IMAGE_ID}:${IMAGE_TAG} \
+            -t ${IMAGE_ID}:${RUNTIME} \
+            --build-arg RUNTIME="$RUNTIME" \
+            --build-arg RUNTIME_VERSION="$IMAGE_TAG" \
+            .
 
       - name: Login to docker registry
         if: |
@@ -144,3 +167,16 @@ jobs:
         run: |
           docker push ${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }}
           docker push ${{ env.IMAGE_ID }}:${{ env.RUNTIME }}
+
+  deploy_and_generate_clients:
+    needs: build
+    uses: norantec/workflows/.github/workflows/deploy.yml@main
+    with:
+      production_branch_name: ${{ inputs.production_branch_name }}
+      image_name: ${{ inputs.image_name }}
+      production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
+      development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
+      java_artifact_id: ${{ inputs.java_artifact_id }}
+      java_artifact_domain: ${{ inputs.java_artifact_domain }}
+      disable_deploy: ${{ inputs.disable_deploy }}
+      disable_generate_clients: ${{ inputs.disable_generate_clients }}

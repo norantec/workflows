@@ -7,26 +7,20 @@ inputs:
     required: true
     default: master
 
-  env_request_file:
-    type: string
-    description: Path to environment request JSON file
-    default: env.json
-    required: true
-
-  docker_registry:
-    type: string
-    required: true
-
-  image_name:
-    type: string
-    required: true
-
 runs:
   using: composite
   steps:
     - name: Get and set variables
       shell: bash
       run: |
+        if [ "${{ github.ref_name }}" = "${{ inputs.production_branch_name }}" ]; then
+          RUNTIME="PRODUCTION"
+        else
+          RUNTIME="DEVELOPMENT"
+        fi
+
+        echo "Runtime: $RUNTIME"
+
         ID_TOKEN=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" $ACTIONS_ID_TOKEN_REQUEST_URL&audience=norantec)
         ID_TOKEN=$(echo $ID_TOKEN | jq -r '.value')
 
@@ -34,13 +28,7 @@ runs:
           [[ -z "$key" || "$key" == \#* ]] && continue
           export "$key=$value"
           echo $key=$value >> $GITHUB_ENV
-        done < <(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H 'Accept: */*' -d @${{ inputs.env_request_file }} https://endpoint.norantec.com/env)
-
-        if [ "${{ github.ref_name }}" = "${{ inputs.production_branch_name }}" ]; then
-          RUNTIME="PRODUCTION"
-        else
-          RUNTIME="DEVELOPMENT"
-        fi
+        done < <(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H 'Accept: */*' https://workflows-api.norantec.com/$(echo $RUNTIME | tr '[:upper:]' '[:lower:]')/env)
 
         RUNTIME_VERSION=$(cat VERSION 2>/dev/null) || RUNTIME_VERSION=0.0.0
         IMAGE_TAG=$RUNTIME_VERSION-$RUNTIME.${{ github.run_number }}.${{ github.run_attempt }}
@@ -48,7 +36,5 @@ runs:
         echo RUNTIME=$RUNTIME >> $GITHUB_ENV
         echo DB_PASSWORD=$DB_PASSWORD >> $GITHUB_ENV
         echo OPEN_API_DOC_URL=$OPEN_API_DOC_URL >> $GITHUB_ENV
-        echo IMAGE_NAME=norantec/service.getnauti.dash-api >> $GITHUB_ENV
         echo RUNTIME_VERSION=$RUNTIME_VERSION >> $GITHUB_ENV
         echo IMAGE_TAG=$IMAGE_TAG >> $GITHUB_ENV
-        echo IMAGE_ID=${{ inputs.docker_registry }}/${{ inputs.image_name }} >> $GITHUB_ENV

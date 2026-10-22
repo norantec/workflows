@@ -1,97 +1,80 @@
 name: Manually Deploy Services and Generate Clients
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      openapi_doc_url:
+      production_branch_name:
+        type: string
+        description: Production branch name
+        required: false
+        default: master
+
+      image_name:
         type: string
         required: true
 
-      image_id:
-        type: string
-        description: Docker image URL
-        required: true
-
-      image_tag:
-        type: string
-        description: Docker image tag
-        required: true
-
-      deploy_hosts:
-        type: string
-        required: true
-        description: Serialized JSON string for deploy host configs
-
-      artifact_id:
+      production_openapi_doc_url:
         type: string
         required: true
 
-      artifact_domain:
+      development_openapi_doc_url:
         type: string
         required: true
 
-      deploy_script:
+      java_artifact_id:
         type: string
         required: true
 
-      npm_token:
+      java_artifact_domain:
         type: string
         required: true
 
-      github_token:
-        type: string
-        required: true
+      disable_deploy:
+        type: boolean
+        required: false
+        default: false
 
-      github_repository:
-        type: string
-        required: true
-
-      github_repository_owner:
-        type: string
-        required: true
+      disable_generate_clients:
+        type: boolean
+        required: false
+        default: false
 
 jobs:
-  check:
+  init:
     runs-on: ubuntu-latest
+    outputs:
+      DEPLOY_HOSTS: ${{ steps.setup_hosts.outputs.DEPLOY_HOSTS }}
     steps:
-      - name: Check and initialize environment variables
-        uses: norantec/workflows/actions/rematch-versions@main
-        with:
-          tag: ${{ inputs.image_tag }}
+      - name: Initialize environment variables
+        uses: norantec/workflows/actions/init@main
+
+      - name: Prepare deploy hosts
+        id: setup_hosts
+        run: |
+          ID_TOKEN=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" $ACTIONS_ID_TOKEN_REQUEST_URL&audience=norantec)
+          ID_TOKEN=$(echo $ID_TOKEN | jq -r '.value')
+          echo DEPLOY_HOSTS=$(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H 'Accept: */*' https://workflows-api.norantec.com/$(echo $RUNTIME | tr '[:upper:]' '[:lower:]')/hosts) >> $GITHUB_OUTPUT
 
   deploy:
-    needs: check
+    needs: init
     runs-on: ubuntu-latest
+    if: ${{ inputs.disable_deploy != true }}
     strategy:
       fail-fast: false
       matrix:
-        server: ${{ fromJson(inputs.deploy_hosts) }}
+        server: ${{ fromJson(needs.init.outputs.DEPLOY_HOSTS) }}
     steps:
-      - name: Check and initialize environment variables
-        uses: norantec/workflows/actions/rematch-versions@main
-        with:
-          tag: ${{ inputs.image_tag }}
+      - name: Initialize environment variables
+        uses: norantec/workflows/actions/init@main
 
-      - name: Setup environments
-        run: |
-          IMAGE_ID=${{ inputs.image_id }}
-          echo GITHUB_TOKEN=${{ inputs.github_token }} >> $GITHUB_ENV
-          echo IMAGE_ID=$IMAGE_ID >> $GITHUB_ENV
-          echo CONTAINER_NAME=${IMAGE_ID##*/} >> $GITHUB_ENV
-
-      - name: Setup SSH key
+      - name: Setup SSH key and other variables
         env:
           SSH_KEY_COMMAND: ${{ matrix.server.ssh_key }}
           PROXY_SSH_KEY_COMMAND: ${{ matrix.server.proxy_ssh_key }}
-          DEPLOY_SCRIPT_COMMAND: ${{ inputs.deploy_script }}
         run: |
           eval $SSH_KEY_COMMAND > ./ssh_id
           eval $PROXY_SSH_KEY_COMMAND > ./proxy_ssh_id || true
-          eval $DEPLOY_SCRIPT_COMMAND > ./deploy.sh
-
-          cat ssh_id
-          cat proxy_ssh_id
-          cat deploy.sh
+          echo IMAGE_NAME=${{ inputs.image_name }} >> $GITHUB_ENV
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
@@ -104,19 +87,30 @@ jobs:
           proxy_username: ${{ matrix.server.proxy_username }}
           proxy_port: ${{ matrix.server.proxy_port }}
           proxy_key_path: ./proxy_ssh_id
-          script_path: ./deploy.sh
-          allenvs: true
-          envs: IMAGE_ID,IMAGE_TAG,CONTAINER_NAME,GITHUB_TOKEN,RUNTIME
+          script: |
+            set -e
+            POSTFIX=$(echo "${{ env.RUNTIME }}" | tr '[:upper:]' '[:lower:]')
+            TARGETED_CONTAINER_NAME=${{ env.IMAGE_NAME }}.$POSTFIX
+            IMAGE=${{ env.ALIYUN_REGISTRY_ID }}/${{ env.ALIYUN_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            docker pull $IMAGE
+            docker stop $TARGETED_CONTAINER_NAME || true
+            docker rm $TARGETED_CONTAINER_NAME || true
+            docker run \
+              -d \
+              --restart always \
+              --name $TARGETED_CONTAINER_NAME \
+              -e GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
+              -e DB_PASSWORD=${{ env.DB_PASSWORD }} \
+              -e NORANTEC_WORKER_APPLICATION_ID=5865e0d0-c468-4c78-a1ec-41d39dd36cac \
+              -e NORANTEC_WORKER_APPLICATION_SECRET=${{ secrets.NORANTEC_WORKER_APPLICATION_SECRET }} \
+              $IMAGE
+            docker system prune -a -f
 
   generate_publish_client:
     needs: deploy
+    if: ${{ inputs.disable_generate_clients != true }}
     runs-on: ubuntu-latest
     steps:
-      - name: Check and initialize environment variables
-        uses: norantec/workflows/actions/rematch-versions@main
-        with:
-          tag: ${{ inputs.image_tag }}
-
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -131,6 +125,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Initialize environment variables
+        uses: norantec/workflows/actions/init@main
+
+      - name: Prepare other environment variables
+        run: |
+          if [[ "${{ env.RUNTIME }}" == "PRODUCTION" ]]; then
+            echo OPENAPI_DOC_URL=${{ inputs.production_openapi_doc_url }} >> $GITHUB_ENV
+          else
+            echo OPENAPI_DOC_URL=${{ inputs.development_openapi_doc_url }} >> $GITHUB_ENV
+          fi
+
       - name: Generate client code
         id: generate
         run: |
@@ -140,7 +145,7 @@ jobs:
 
           while true; do
             ATTEMPT=$(( ATTEMPT + 1 ))
-            ONLINE_IMAGE_TAG=$(curl -fsSL "${{ inputs.openapi_doc_url }}" | jq -er '.info.version') || ONLINE_IMAGE_TAG=""
+            ONLINE_IMAGE_TAG=$(curl -fsSL "${{ env.OPENAPI_DOC_URL }}" | jq -er '.info.version') || ONLINE_IMAGE_TAG=""
 
             if [[ "$ATTEMPT" -ge 60 ]]; then
               echo "Timedout for fetching online version"
@@ -174,28 +179,26 @@ jobs:
 
           # TypeScript + Axios
           npx @openapitools/openapi-generator-cli generate \
-            -i "${{ inputs.openapi_doc_url }}" \
+            -i "${{ env.OPENAPI_DOC_URL }}" \
             -g typescript-axios \
             -o "./sdk/typescript/src" \
             --skip-validate-spec \
             --type-mappings Null=null
 
           # Java
-          ARTIFACT_ID=${{ inputs.artifact_id }}
-          ARTIFACT_ID=${ARTIFACT_ID//-/}
           npx @openapitools/openapi-generator-cli generate \
-            -i "${{ inputs.openapi_doc_url }}" \
+            -i "${{ env.OPENAPI_DOC_URL }}" \
             -g java \
             --skip-validate-spec \
             -o "./sdk/java" \
             --type-mappings null=Object \
-            --additional-properties="groupId=${{ inputs.artifact_domain }},artifactId=${ARTIFACT_ID},apiPackage=${{ inputs.artifact_domain }}.api,modelPackage=${{ inputs.artifact_domain }}.model,invokerPackage=${{ inputs.artifact_domain }}"
+            --additional-properties="groupId=${{ inputs.java_artifact_domain }},artifactId=${{ inputs.java_artifact_id }},apiPackage=${{ inputs.java_artifact_domain }}.api,modelPackage=${{ inputs.java_artifact_domain }}.model,invokerPackage=${{ inputs.java_artifact_domain }}"
 
       - name: Publish TypeScript client
         working-directory: sdk/typescript
         env:
-          NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
-          NPM_TOKEN: ${{ inputs.npm_token }}
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+          NPM_TOKEN: ${{ env.NPM_TOKEN }}
         if: |
           ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
         run: |
@@ -208,7 +211,7 @@ jobs:
             npm version ${{ env.RUNTIME_VERSION }}
           fi
 
-          npm pkg set name="${{ inputs.artifact_id }}"
+          npm pkg set name="${{ inputs.java_artifact_id }}"
           npm publish --tag latest
 
       - name: Publish Java client
@@ -226,8 +229,8 @@ jobs:
             <servers>
               <server>
                 <id>github</id>
-                <username>${{ inputs.github_repository_owner }}</username>
-                <password>${{ inputs.github_token }}</password>
+                <username>${{ github.repository_owner }}</username>
+                <password>${{ env.GITHUB_TOKEN }}</password>
               </server>
             </servers>
           </settings>
@@ -235,5 +238,5 @@ jobs:
 
           mvn org.codehaus.mojo:versions-maven-plugin:set -DnewVersion="${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && '-SNAPSHOT' || '' }}" -DgenerateBackupPoms=false
           mvn deploy \
-            -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ inputs.github_repository }} \
+            -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \
             -DrepositoryId=github
