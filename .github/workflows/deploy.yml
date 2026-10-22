@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: Set version environment variable
         run: |
-          echo $RUNTIME_VERSION=${{ inputs.version }} >> $GITHUB_ENV
+          echo RUNTIME_VERSION=${{ inputs.version }} >> $GITHUB_ENV
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
@@ -84,12 +84,9 @@ jobs:
         uses: norantec/workflows/actions/init@main
 
       - name: Setup SSH key and other variables
-        env:
-          SSH_KEY_COMMAND: ${{ matrix.server.ssh_key }}
-          PROXY_SSH_KEY_COMMAND: ${{ matrix.server.proxy_ssh_key }}
         run: |
-          eval $SSH_KEY_COMMAND > ./ssh_id
-          eval $PROXY_SSH_KEY_COMMAND > ./proxy_ssh_id || true
+          $(curl -fSsL ${{ matrix.server.ssh_key }} -H "Authorization: token ${{ env.GITHUB_TOKEN }}") > ./ssh_id
+          $(curl -fSsL ${{ matrix.server.proxy_ssh_key }} -H "Authorization: token ${{ env.GITHUB_TOKEN }}") > ./proxy_ssh_id
           echo IMAGE_NAME=${{ inputs.image_name }} >> $GITHUB_ENV
 
       - name: Deploy via SSH
