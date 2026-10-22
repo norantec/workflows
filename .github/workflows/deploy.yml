@@ -227,7 +227,6 @@ jobs:
             npm version ${{ env.RUNTIME_VERSION }}
           fi
 
-          npm pkg set name="${{ inputs.java_artifact_id }}"
           npm publish --tag latest
 
       - name: Publish Java client
