@@ -197,7 +197,7 @@ jobs:
           npx @openapitools/openapi-generator-cli generate \
             -i "${{ env.OPENAPI_DOC_URL }}" \
             -g typescript-axios \
-            -o "./sdk/typescript/src" \
+            -o "./.sdk/typescript/src" \
             --skip-validate-spec \
             --type-mappings Null=null
 
@@ -206,12 +206,12 @@ jobs:
             -i "${{ env.OPENAPI_DOC_URL }}" \
             -g java \
             --skip-validate-spec \
-            -o "./sdk/java" \
+            -o "./.sdk/java" \
             --type-mappings null=Object \
             --additional-properties="groupId=${{ inputs.java_artifact_domain }},artifactId=${{ inputs.java_artifact_id }},apiPackage=${{ inputs.java_artifact_domain }}.api,modelPackage=${{ inputs.java_artifact_domain }}.model,invokerPackage=${{ inputs.java_artifact_domain }}"
 
       - name: Publish TypeScript client
-        working-directory: sdk/typescript
+        working-directory: .sdk/typescript
         env:
           NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
           NPM_TOKEN: ${{ env.NPM_TOKEN }}
@@ -231,7 +231,7 @@ jobs:
           npm publish --tag latest
 
       - name: Publish Java client
-        working-directory: sdk/java
+        working-directory: .sdk/java
         if: |
           ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
         run: |

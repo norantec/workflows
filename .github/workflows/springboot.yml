@@ -140,7 +140,7 @@ jobs:
           password: ${{ env.ALIYUN_REGISTRY_PASSWORD }}
           runtime: ${{ env.RUNTIME }}
           version: ${{ env.RUNTIME_VERSION }}
-          subversion: ${{ github.run_number }}.${{ github.run_attempt }}
+          subversion: ${{ github.run_number }}
 
   deploy_and_generate_clients:
     needs: build
