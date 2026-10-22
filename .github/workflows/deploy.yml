@@ -88,8 +88,8 @@ jobs:
 
       - name: Setup SSH key and other variables
         run: |
-          $(curl -fSsL ${{ matrix.server.ssh_key }} -H "Authorization: token ${{ env.GITHUB_TOKEN }}") > ./ssh_id
-          $(curl -fSsL ${{ matrix.server.proxy_ssh_key }} -H "Authorization: token ${{ env.GITHUB_TOKEN }}") > ./proxy_ssh_id
+          curl -fSsL ${{ matrix.server.ssh_key }} -H "Authorization: token ${{ env.GITHUB_TOKEN }}" -o ./ssh_id
+          curl -fSsL ${{ matrix.server.proxy_ssh_key }} -H "Authorization: token ${{ env.GITHUB_TOKEN }}" -o ./proxy_ssh_id
           echo IMAGE_NAME=${{ inputs.image_name }} >> $GITHUB_ENV
 
       - name: Deploy via SSH
