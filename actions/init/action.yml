@@ -7,9 +7,34 @@ inputs:
     required: true
     default: master
 
+  development_branch_name:
+    type: string
+    description: Development branch name
+    required: false
+    default: beta
+
+  version_file:
+    type: string
+    description: Path to version declaration file
+    required: false
+    default: VERSION
+
+  disable_check_version:
+    type: boolean
+    required: false
+    default: true
+
 runs:
   using: composite
   steps:
+    - name: Check version
+      uses: norantec/workflows/actions/check-version@main
+      with:
+        production_branch_name: ${{ inputs.production_branch_name }}
+        development_branch_name: ${{ inputs.development_branch_name }}
+        version_file: ${{ inputs.version_file }}
+        disable_check_version: ${{ inputs.disable_check_version }}
+
     - name: Get and set variables
       shell: bash
       run: |
@@ -30,10 +55,8 @@ runs:
           echo $key=$value >> $GITHUB_ENV
         done < <(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H 'Accept: */*' https://workflows-api.norantec.com/$(echo $RUNTIME | tr '[:upper:]' '[:lower:]')/env)
 
-        RUNTIME_VERSION=$(cat VERSION 2>/dev/null) || RUNTIME_VERSION=0.0.0
         IMAGE_TAG=$RUNTIME_VERSION-$RUNTIME.${{ github.run_number }}.${{ github.run_attempt }}
 
         echo RUNTIME=$RUNTIME >> $GITHUB_ENV
         echo DB_PASSWORD=$DB_PASSWORD >> $GITHUB_ENV
-        echo RUNTIME_VERSION=$RUNTIME_VERSION >> $GITHUB_ENV
         echo IMAGE_TAG=$IMAGE_TAG >> $GITHUB_ENV

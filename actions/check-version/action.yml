@@ -1,11 +1,6 @@
 name: Check version
 
 inputs:
-  version:
-    type: string
-    description: Current version
-    required: true
-
   production_branch_name:
     type: string
     description: Production branch name
@@ -24,6 +19,10 @@ inputs:
     required: false
     default: VERSION
 
+  disable_check_version:
+    type: boolean
+    required: false
+    default: true
 
 runs:
   using: composite
@@ -31,22 +30,30 @@ runs:
     - name: Check version
       shell: bash
       run: |
-        PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=$(git show HEAD~1:${{ inputs.version_file }} 2>/dev/null) || PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=0.0.0
-        PRODUCTION_RUNTIME_VERSION=$(git show origin/${{ inputs.production_branch_name }}:${{ inputs.version_file }} 2>/dev/null) || PRODUCTION_RUNTIME_VERSION=0.0.0
+        RUNTIME_VERSION=$(cat ${{ inputs.version_file }})
 
-        echo "Previous development version: $PREVIOUS_DEVELOPMENT_RUNTIME_VERSION"
-        echo "Production version: $PRODUCTION_RUNTIME_VERSION"
+        if [[ ${{ inputs.disable_check_version }} != true ]]; then
+          echo "Checking version..."
+          PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=$(git show HEAD~1:${{ inputs.version_file }} 2>/dev/null) || PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=0.0.0
+          PRODUCTION_RUNTIME_VERSION=$(git show origin/${{ inputs.production_branch_name }}:${{ inputs.version_file }} 2>/dev/null) || PRODUCTION_RUNTIME_VERSION=0.0.0
 
-        if [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "${{ inputs.version }}" ]]; then
-          echo "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION should either be production version or current developing version"
-          exit 1
-        elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" = "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "${{ inputs.version }}" ]]; then
-          LOWER_VERSION=$(printf '%s\n' "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" "${{ inputs.version }}" | sort -V | head -n 1)
-          if [[ "$LOWER_VERSION" = "${{ inputs.version }}" ]]; then
-            echo "${{ inputs.version }} should not be set as the new development version because its lower than current one"
+          echo "Previous development version: $PREVIOUS_DEVELOPMENT_RUNTIME_VERSION"
+          echo "Production version: $PRODUCTION_RUNTIME_VERSION"
+
+          if [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" ]]; then
+            echo "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION should either be production version or current developing version"
+            exit 1
+          elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" = "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" ]]; then
+            LOWER_VERSION=$(printf '%s\n' "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" "$RUNTIME_VERSION" | sort -V | head -n 1)
+            if [[ "$LOWER_VERSION" = "$RUNTIME_VERSION" ]]; then
+              echo "$RUNTIME_VERSION should not be set as the new development version because its lower than current one"
+              exit 1
+            fi
+          elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" == "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" == "$RUNTIME_VERSION" ]]; then
+            echo "$RUNTIME_VERSION has been sealed for production and need to be bumped"
             exit 1
           fi
-        elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" == "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" == "${{ inputs.version }}" ]]; then
-          echo "${{ inputs.version }} has been sealed for production and need to be bumped"
-          exit 1
+          echo "Version check passed"
         fi
+
+        echo RUNTIME_VERSION=$RUNTIME_VERSION >> $GITHUB_ENV

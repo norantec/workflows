@@ -73,16 +73,6 @@ jobs:
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
 
-      - name: Check version
-        uses: norantec/workflows/actions/check-version@main
-        if: |
-          github.ref_name == ${{ inputs.development_branch_name }}
-        with:
-          version: ${{ env.VERSION }}
-          production_branch_name: ${{ inputs.production_branch_name }}
-          development_branch_name: ${{ inputs.development_branch_name }}
-          version_file: ${{ inputs.version_file }}
-
   build:
     needs: check
     runs-on: ubuntu-latest

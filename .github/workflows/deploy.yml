@@ -47,6 +47,8 @@ jobs:
     steps:
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
+        with:
+          disable_check_version: false
 
       - name: Prepare deploy hosts
         id: setup_hosts
