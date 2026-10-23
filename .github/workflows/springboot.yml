@@ -51,6 +51,16 @@ on:
         type: string
         required: true
 
+      build_script:
+        type: string
+        required: false
+        default: ./build.sh
+
+      build_env_keys:
+        type: string
+        required: false
+        default: ''
+
     secrets:
       docker_password:
         required: true
@@ -141,6 +151,7 @@ jobs:
           runtime: ${{ env.RUNTIME }}
           version: ${{ env.RUNTIME_VERSION }}
           subversion: ${{ github.run_number }}
+          build_script: ${{ inputs.build_script }}
 
   deploy_and_generate_clients:
     needs: build
