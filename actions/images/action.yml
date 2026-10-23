@@ -40,11 +40,6 @@ inputs:
     required: false
     default: false
 
-  dockerfile:
-    type: string
-    required: false
-    default: ./Dockerfile
-
   build_script:
     type: string
     required: false
