@@ -118,6 +118,7 @@ runs:
         password: ${{ inputs.password }}
 
     - name: Push image
+      if: ${{ inputs.disable_push != 'true' }} 
       shell: bash
       run: |
         docker push ${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }}

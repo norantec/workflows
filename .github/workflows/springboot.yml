@@ -113,11 +113,9 @@ jobs:
           echo RUNTIME_VERSION=${{ env.RUNTIME_VERSION }} >> $GITHUB_OUTPUT
 
       - name: Create and push docker image
-        if: |
-          github.ref_name == ${{ inputs.production_branch_name }} ||
-          github.ref_name == ${{ inputs.development_branch_name }}     
         uses: norantec/workflows/actions/build@main
         with:
+          disable_push: ${{ github.ref_name != inputs.production_branch_name && github.ref_name != inputs.development_branch_name }}
           image_name: ${{ inputs.image_name }}
           registry_namespace: ${{ env.ALIYUN_REGISTRY_NAMESPACE }}
           registry: ${{ env.ALIYUN_REGISTRY_ID }}
