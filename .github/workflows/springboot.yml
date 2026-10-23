@@ -135,6 +135,7 @@ jobs:
           version: ${{ env.RUNTIME_VERSION }}
           subversion: ${{ github.run_number }}
           build_script: ${{ inputs.build_script }}
+          build_env_keys: ${{ inputs.build_env_keys }}
 
   deploy_and_generate_clients:
     needs: build

@@ -59,7 +59,7 @@ runs:
           [[ -z "$key" || "$key" == \#* ]] && continue
           export "$key=$value"
           echo $key=$value >> $GITHUB_ENV
-        done < <(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H 'Accept: */*' https://workflows-api.norantec.com/$(echo $RUNTIME | tr '[:upper:]' '[:lower:]')/env)
+        done < <(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -H 'Accept: */*' https://workflows-api.norantec.com/$(echo $RUNTIME | tr '[:upper:]' '[:lower:]')/env?_=$(date +%s%N))
 
         IMAGE_TAG=$RUNTIME_VERSION-$RUNTIME.${{ github.run_number }}
 
