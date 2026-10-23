@@ -43,14 +43,6 @@ on:
         type: string
         required: true
 
-      java_artifact_id:
-        type: string
-        required: true
-
-      java_artifact_domain:
-        type: string
-        required: true
-
       build_script:
         type: string
         required: false
@@ -146,7 +138,5 @@ jobs:
       image_name: ${{ inputs.image_name }}
       production_openapi_doc_url: ${{ inputs.production_openapi_doc_url }}
       development_openapi_doc_url: ${{ inputs.development_openapi_doc_url }}
-      java_artifact_id: ${{ inputs.java_artifact_id }}
-      java_artifact_domain: ${{ inputs.java_artifact_domain }}
       disable_deploy: ${{ inputs.disable_deploy }}
       disable_generate_clients: ${{ inputs.disable_generate_clients }}
