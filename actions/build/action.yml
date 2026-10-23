@@ -103,6 +103,7 @@ runs:
         env_args+=("PATH=${PATH}")
         env_args+=("GITHUB_TOKEN=${{ env.GITHUB_TOKEN }}")
         env_args+=("RUNTIME_VERSION=${{ env.IMAGE_TAG }}")
+        env_args+=("RUNTIME=${{ env.RUNTIME }}")
 
         env -i "${env_args[@]}" /bin/bash $BUILD_SCRIPT
 
