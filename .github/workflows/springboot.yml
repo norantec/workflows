@@ -120,28 +120,11 @@ jobs:
         run: |
           echo RUNTIME_VERSION=${{ env.RUNTIME_VERSION }} >> $GITHUB_OUTPUT
 
-      - name: Build
-        run: |
-          cat > ~/.m2/settings.xml <<'EOF'
-          <settings>
-          <servers>
-            <server>
-            <id>norantec-omni-api</id>
-            <username>${env.GITHUB_USERNAME}</username>
-            <password>${env.GITHUB_TOKEN}</password>
-            </server>
-          </servers>
-          </settings>
-          EOF
-
-          npm i --legacy-peer-deps=true
-          npm run build
-
       - name: Create and push docker image
         if: |
           github.ref_name == ${{ inputs.production_branch_name }} ||
           github.ref_name == ${{ inputs.development_branch_name }}     
-        uses: norantec/workflows/actions/images@main
+        uses: norantec/workflows/actions/build@main
         with:
           image_name: ${{ inputs.image_name }}
           registry_namespace: ${{ env.ALIYUN_REGISTRY_NAMESPACE }}
