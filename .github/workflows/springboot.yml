@@ -130,7 +130,7 @@ jobs:
   deploy_and_generate_clients:
     needs: build
     uses: norantec/workflows/.github/workflows/deploy.yml@main
-    if: ${{ github.ref_name != inputs.production_branch_name && github.ref_name != inputs.development_branch_name }}
+    if: ${{ github.ref_name == inputs.production_branch_name || github.ref_name == inputs.development_branch_name }}
     with:
       version: ${{ needs.build.outputs.RUNTIME_VERSION }}
       production_branch_name: ${{ inputs.production_branch_name }}
