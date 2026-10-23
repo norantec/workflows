@@ -115,10 +115,6 @@ jobs:
               -d \
               --restart always \
               --name $TARGETED_CONTAINER_NAME \
-              -e GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
-              -e DB_PASSWORD=${{ env.DB_PASSWORD }} \
-              -e NORANTEC_WORKER_APPLICATION_ID=5865e0d0-c468-4c78-a1ec-41d39dd36cac \
-              -e NORANTEC_WORKER_APPLICATION_SECRET=${{ secrets.NORANTEC_WORKER_APPLICATION_SECRET }} \
               $IMAGE
             docker system prune -a -f
 
