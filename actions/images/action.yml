@@ -99,9 +99,10 @@ runs:
           done
         fi
 
-        env_args+=("FULL_IMAGE_ID=${IMAGE_ID}:${IMAGE_TAG}")
+        env_args+=("FULL_IMAGE_ID=${{ env.IMAGE_ID }}:${{ env.IMAGE_TAG }}")
         env_args+=("PATH=${PATH}")
         env_args+=("GITHUB_TOKEN=${{ env.GITHUB_TOKEN }}")
+        env_args+=("RUNTIME_VERSION=${{ env.IMAGE_TAG }}")
 
         env -i "${env_args[@]}" /bin/bash $BUILD_SCRIPT
 
