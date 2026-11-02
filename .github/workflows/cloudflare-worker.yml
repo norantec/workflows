@@ -91,7 +91,9 @@ jobs:
           development_branch_name: ${{ inputs.development_branch_name }}
 
       - name: Deploy
-        run: npx wrangler deploy --minify --define process.env.VERSION:${{ env.IMAGE_TAG }}
+        run: |
+          npm i --legacy-peer-deps=true
+          npx wrangler deploy --minify --define process.env.VERSION:${{ env.IMAGE_TAG }}
 
       - name: Prepare other environment variables
         run: |
