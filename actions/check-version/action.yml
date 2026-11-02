@@ -41,18 +41,16 @@ runs:
           echo "Previous development version: $PREVIOUS_DEVELOPMENT_RUNTIME_VERSION"
           echo "Production version: $PRODUCTION_RUNTIME_VERSION"
 
-          if [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" ]]; then
-            if [[ "${{ inputs.production_branch_name }}" != "${{ inputs.development_branch_name }}" || "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "0.0.0" ]]; then
-              echo "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION should either be production version or current developing version"
-              exit 1
-            fi
+          if [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" && "${{ inputs.production_branch_name }}" != "${{ inputs.development_branch_name }}" ]]; then
+            echo "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION should either be production version or current developing version"
+            exit 1
           elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" = "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" ]]; then
             LOWER_VERSION=$(printf '%s\n' "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" "$RUNTIME_VERSION" | sort -V | head -n 1)
             if [[ "$LOWER_VERSION" = "$RUNTIME_VERSION" ]]; then
               echo "$RUNTIME_VERSION should not be set as the new development version because its lower than current one"
               exit 1
             fi
-          elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" == "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" == "$RUNTIME_VERSION" ]]; then
+          elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" = "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" = "$RUNTIME_VERSION" ]]; then
             echo "$RUNTIME_VERSION has been sealed for production and need to be bumped"
             exit 1
           fi
