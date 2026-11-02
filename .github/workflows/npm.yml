@@ -59,9 +59,9 @@ jobs:
       - name: Set version
         run: |
           if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
-            npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }}
+            npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }} --no-git-tag-version --commit-hooks false
           else
-            npm version ${{ env.RUNTIME_VERSION }}
+            npm version ${{ env.RUNTIME_VERSION }} --no-git-tag-version --commit-hooks false
           fi
 
       - name: Publish package

@@ -104,9 +104,9 @@ runs:
         npm run build
 
         if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
-          npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }}
+          npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }} --no-git-tag-version --commit-hooks false
         else
-          npm version ${{ env.RUNTIME_VERSION }}
+          npm version ${{ env.RUNTIME_VERSION }} --no-git-tag-version --commit-hooks false
         fi
 
         npm publish --tag latest
