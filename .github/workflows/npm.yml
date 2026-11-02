@@ -42,6 +42,7 @@ jobs:
           disable_check_version: false
 
   build_and_deploy:
+    needs: init
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -74,3 +75,4 @@ jobs:
         run: |
           echo "@open-norantec:registry=https://registry.npmjs.org" >> ./.npmrc
           echo "//registry.npmjs.org/:_authToken=${{ env.NPM_TOKEN }}" >> ./.npmrc
+          npm publish --tag latest
