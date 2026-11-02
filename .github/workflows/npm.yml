@@ -1,0 +1,76 @@
+name: Build and Publish NPM Packages
+
+on:
+  workflow_call:
+    inputs:
+      production_branch_name:
+        type: string
+        description: Production branch name
+        required: false
+        default: master
+
+      development_branch_name:
+        type: string
+        description: Development branch name
+        required: false
+        default: beta
+
+      version_file:
+        type: string
+        description: Path to version declaration file
+        required: false
+        default: VERSION
+
+permissions:
+  contents: read
+  packages: write
+  repository-projects: write
+  id-token: write
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Initialize environment variables
+        uses: norantec/workflows/actions/init@main
+        with:
+          disable_check_version: false
+
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com/'
+
+      - name: Install dependencies
+        run: npm i --legacy-peer-deps=true
+
+      - name: Run build
+        run: npm run build
+
+      - name: Set version
+        run: |
+          if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
+            npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }}
+          else
+            npm version ${{ env.RUNTIME_VERSION }}
+          fi
+
+      - name: Publish package
+        if: ${{ github.ref_name == inputs.production_branch_name || github.ref_name == inputs.development_branch_name }}
+        run: |
+          echo "@open-norantec:registry=https://registry.npmjs.org" >> ./.npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ env.NPM_TOKEN }}" >> ./.npmrc

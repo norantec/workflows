@@ -52,17 +52,17 @@ runs:
             continue
           fi
 
-          echo "Runtime image tag: $IMAGE_TAG"
+          echo "Runtime image tag: $CURRENT_VERSION"
           echo "Remote image tag: $ONLINE_VERSION"
 
-          if [ "$ONLINE_VERSION" = "$IMAGE_TAG" ]; then
+          if [ "$ONLINE_VERSION" = "$CURRENT_VERSION" ]; then
             echo "Versions match. Continue."
             break
           fi
 
-          LOWER_IMAGE_TAG=$(printf '%s\n' "$IMAGE_TAG" "$ONLINE_VERSION" | sort -V | head -n 1)
+          LOWER_IMAGE_TAG=$(printf '%s\n' "$CURRENT_VERSION" "$ONLINE_VERSION" | sort -V | head -n 1)
 
-          if [ "$LOWER_IMAGE_TAG" = "$IMAGE_TAG" ]; then
+          if [ "$LOWER_IMAGE_TAG" = "$CURRENT_VERSION" ]; then
             echo "Current version is outdated. Skip remaining jobs."
             echo "HAS_NEXT=false" >> $GITHUB_OUTPUT
             exit 0

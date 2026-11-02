@@ -134,4 +134,4 @@ jobs:
         with:
           runtime: ${{ env.RUNTIME }}
           openapi_doc_url: ${{ env.OPENAPI_DOC_URL }}
-          current_version: ${{ env.RUNTIME_VERSION }}
+          current_version: ${{ env.IMAGE_TAG }}
