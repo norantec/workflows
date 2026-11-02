@@ -93,7 +93,7 @@ jobs:
       - name: Deploy
         run: |
           npm i --legacy-peer-deps=true
-          npx wrangler deploy --minify --define process.env.VERSION:${{ env.IMAGE_TAG }}
+          npx wrangler deploy --minify --define process.env.VERSION:'"${{ env.IMAGE_TAG }}"'
 
       - name: Prepare other environment variables
         run: |
