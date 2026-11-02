@@ -42,8 +42,10 @@ runs:
           echo "Production version: $PRODUCTION_RUNTIME_VERSION"
 
           if [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" ]]; then
-            echo "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION should either be production version or current developing version"
-            exit 1
+            if [[ "$PRODUCTION_RUNTIME_VERSION" != "0.0.0" ]]; then
+              echo "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION should either be production version or current developing version"
+              exit 1
+            fi
           elif [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" = "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" ]]; then
             LOWER_VERSION=$(printf '%s\n' "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" "$RUNTIME_VERSION" | sort -V | head -n 1)
             if [[ "$LOWER_VERSION" = "$RUNTIME_VERSION" ]]; then
