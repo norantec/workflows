@@ -42,7 +42,7 @@ runs:
           echo "Production version: $PRODUCTION_RUNTIME_VERSION"
 
           if [[ "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$PRODUCTION_RUNTIME_VERSION" && "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "$RUNTIME_VERSION" ]]; then
-            if [[ "$PRODUCTION_RUNTIME_VERSION" != "0.0.0" ]]; then
+            if [[ "${{ inputs.production_branch_name }}" != "${{ inputs.development_branch_name }}" || "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION" != "0.0.0" ]]; then
               echo "$PREVIOUS_DEVELOPMENT_RUNTIME_VERSION should either be production version or current developing version"
               exit 1
             fi
