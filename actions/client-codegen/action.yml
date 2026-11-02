@@ -99,6 +99,8 @@ runs:
       if: |
         ${{ steps.generate.outputs.HAS_NEXT != 'false' }}
       run: |
+        ls -al src
+
         npm install --legacy-peer-deps=true
         npm run build
 
