@@ -93,8 +93,6 @@ runs:
       working-directory: .sdk/typescript
       shell: bash
       env:
-        NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
-        NPM_TOKEN: ${{ env.NPM_TOKEN }}
         RUNTIME: ${{ inputs.runtime }}
         RUNTIME_VERSION: ${{ inputs.current_version }}
       if: |
@@ -108,6 +106,8 @@ runs:
         else
           npm version ${{ env.RUNTIME_VERSION }} --no-git-tag-version --commit-hooks false
         fi
+
+        echo "//registry.npmjs.org/:_authToken=${{ env.NPM_TOKEN }}" >> ./.npmrc
 
         npm publish --tag latest
 

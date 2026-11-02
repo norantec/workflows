@@ -67,6 +67,5 @@ jobs:
       - name: Publish package
         if: ${{ github.ref_name == inputs.production_branch_name || github.ref_name == inputs.development_branch_name }}
         run: |
-          echo "@open-norantec:registry=https://registry.npmjs.org" >> ./.npmrc
           echo "//registry.npmjs.org/:_authToken=${{ env.NPM_TOKEN }}" >> ./.npmrc
           npm publish --tag latest
