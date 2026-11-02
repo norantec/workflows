@@ -37,6 +37,7 @@ runs:
           PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=$(git show HEAD~1:${{ inputs.version_file }} 2>/dev/null) || PREVIOUS_DEVELOPMENT_RUNTIME_VERSION=0.0.0
           PRODUCTION_RUNTIME_VERSION=$(git show origin/${{ inputs.production_branch_name }}:${{ inputs.version_file }} 2>/dev/null) || PRODUCTION_RUNTIME_VERSION=0.0.0
 
+          echo "Current version: $RUNTIME_VERSION"
           echo "Previous development version: $PREVIOUS_DEVELOPMENT_RUNTIME_VERSION"
           echo "Production version: $PRODUCTION_RUNTIME_VERSION"
 

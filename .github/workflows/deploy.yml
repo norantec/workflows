@@ -36,6 +36,12 @@ on:
         required: false
         default: ''
 
+      version_file:
+        type: string
+        description: Path to version declaration file
+        required: false
+        default: VERSION
+
 jobs:
   init:
     runs-on: ubuntu-latest
@@ -55,6 +61,9 @@ jobs:
         uses: norantec/workflows/actions/init@main
         with:
           disable_version_action: ${{ inputs.version != '' }}
+          version_file: ${{ inputs.version_file }}
+          production_branch_name: ${{ inputs.production_branch_name }}
+          development_branch_name: ${{ inputs.development_branch_name }}
 
       - name: Prepare deploy hosts
         id: setup_hosts
@@ -77,6 +86,10 @@ jobs:
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
+        with:
+          version_file: ${{ inputs.version_file }}
+          production_branch_name: ${{ inputs.production_branch_name }}
+          development_branch_name: ${{ inputs.development_branch_name }}
 
       - name: Setup SSH key and other variables
         run: |
@@ -120,6 +133,10 @@ jobs:
 
       - name: Initialize environment variables
         uses: norantec/workflows/actions/init@main
+        with:
+          version_file: ${{ inputs.version_file }}
+          production_branch_name: ${{ inputs.production_branch_name }}
+          development_branch_name: ${{ inputs.development_branch_name }}
 
       - name: Prepare other environment variables
         run: |

@@ -40,6 +40,9 @@ jobs:
         uses: norantec/workflows/actions/init@main
         with:
           disable_check_version: false
+          version_file: ${{ inputs.version_file }}
+          production_branch_name: ${{ inputs.production_branch_name }}
+          development_branch_name: ${{ inputs.development_branch_name }}
 
   build_and_deploy:
     needs: init
@@ -53,7 +56,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://npm.pkg.github.com/'
 
       - name: Install dependencies
