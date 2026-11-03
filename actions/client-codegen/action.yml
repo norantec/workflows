@@ -80,7 +80,7 @@ runs:
           [ -f "$config" ] || continue
 
           CLIENT_TYPE="${config#openapi-generator.}"
-          CLIENT_TYPE="${name%.${OPENAPI_ENVIRONMENT_TAG}.yaml}"
+          CLIENT_TYPE="${CLIENT_TYPE%.${OPENAPI_ENVIRONMENT_TAG}.yaml}"
 
           echo "Generating client code for $CLIENT_TYPE..."
 
