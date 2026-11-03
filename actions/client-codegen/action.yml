@@ -76,10 +76,7 @@ runs:
 
         echo "Current OpenAPI environment tag: $OPENAPI_ENVIRONMENT_TAG"
 
-        npx @openapitools/openapi-generator-cli batch \
-          --skip-overwrite \
-          --skip-validate-spec \
-          openapi-generator.*.${OPENAPI_ENVIRONMENT_TAG}.yaml
+        npx @openapitools/openapi-generator-cli batch openapi-generator.*.${OPENAPI_ENVIRONMENT_TAG}.yaml
 
     - name: Publish TypeScript client
       working-directory: .sdk/typescript
