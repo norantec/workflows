@@ -72,22 +72,14 @@ runs:
           sleep 20
         done
 
-        # TypeScript + Axios
-        npx @openapitools/openapi-generator-cli generate \
-          -i "${{ env.OPENAPI_DOC_URL }}" \
-          -g typescript-axios \
-          -o "./.sdk/typescript/src" \
-          --skip-validate-spec \
-          --type-mappings Null=null
+        OPENAPI_ENVIRONMENT_TAG=$(echo "${{ inputs.runtime }}" | tr '[:upper:]' '[:lower:]')
 
-        # Java
-        npx @openapitools/openapi-generator-cli generate \
-          -i "${{ env.OPENAPI_DOC_URL }}" \
-          -g java \
-          --skip-validate-spec \
+        echo "Current OpenAPI environment tag: $OPENAPI_ENVIRONMENT_TAG"
+
+        npx @openapitools/openapi-generator-cli batch \
           --skip-overwrite \
-          -o "./.sdk/java" \
-          --type-mappings null=Object
+          --skip-validate-spec \
+          openapi-generator.*.${OPENAPI_ENVIRONMENT_TAG}.yaml
 
     - name: Publish TypeScript client
       working-directory: .sdk/typescript
