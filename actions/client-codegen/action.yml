@@ -1,10 +1,6 @@
 name: Generate client code with OpenAPI document
 
 inputs:
-  openapi_doc_url:
-    type: string
-    required: true
-
   current_version:
     type: string
     required: true
@@ -32,7 +28,6 @@ runs:
       id: generate
       env:
         CURRENT_VERSION: ${{ inputs.current_version }}-${{ env.RUNTIME }}.${{ github.run_number }}
-        OPENAPI_DOC_URL: ${{ inputs.openapi_doc_url }}
       run: |
         sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
         sudo chmod +x /usr/local/bin/yq
@@ -40,47 +35,46 @@ runs:
         set -euo pipefail
 
         ATTEMPT=0
-
-        while true; do
-          ATTEMPT=$(( ATTEMPT + 1 ))
-          ONLINE_VERSION=$(curl -fsSL "${{ env.OPENAPI_DOC_URL }}" | jq -er '.info.version') || ONLINE_VERSION=""
-
-          if [[ "$ATTEMPT" -ge 60 ]]; then
-            echo "Timedout for fetching online version"
-            exit 1
-          fi
-
-          if [[ -z "$ONLINE_VERSION" ]]; then
-            sleep 20
-            continue
-          fi
-
-          echo "Runtime image tag: $CURRENT_VERSION"
-          echo "Remote image tag: $ONLINE_VERSION"
-
-          if [ "$ONLINE_VERSION" = "$CURRENT_VERSION" ]; then
-            echo "Versions match. Continue."
-            break
-          fi
-
-          LOWER_IMAGE_TAG=$(printf '%s\n' "$CURRENT_VERSION" "$ONLINE_VERSION" | sort -V | head -n 1)
-
-          if [ "$LOWER_IMAGE_TAG" = "$CURRENT_VERSION" ]; then
-            echo "Current version is outdated. Skip remaining jobs."
-            echo "HAS_NEXT=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "Waiting for remote version to catch up..."
-          sleep 20
-        done
-
         OPENAPI_ENVIRONMENT_TAG=$(echo "${{ inputs.runtime }}" | tr '[:upper:]' '[:lower:]')
 
         echo "Current OpenAPI environment tag: $OPENAPI_ENVIRONMENT_TAG"
 
         for config in openapi-generator.*.${OPENAPI_ENVIRONMENT_TAG}.yaml; do
           [ -f "$config" ] || continue
+
+          while true; do
+            ATTEMPT=$(( ATTEMPT + 1 ))
+            ONLINE_VERSION=$(curl -fsSL $(yq '.inputSpec' $config) | jq -er '.info.version') || ONLINE_VERSION=""
+
+            if [[ "$ATTEMPT" -ge 60 ]]; then
+              echo "Timedout for fetching online version"
+              continue 2
+            fi
+
+            if [[ -z "$ONLINE_VERSION" ]]; then
+              sleep 20
+              continue
+            fi
+
+            echo "Runtime image tag: $CURRENT_VERSION"
+            echo "Remote image tag: $ONLINE_VERSION"
+
+            if [ "$ONLINE_VERSION" = "$CURRENT_VERSION" ]; then
+              echo "Versions match. Continue."
+              break
+            fi
+
+            LOWER_IMAGE_TAG=$(printf '%s\n' "$CURRENT_VERSION" "$ONLINE_VERSION" | sort -V | head -n 1)
+
+            if [ "$LOWER_IMAGE_TAG" = "$CURRENT_VERSION" ]; then
+              echo "Current version is outdated. Skip remaining jobs."
+              echo "HAS_NEXT=false" >> $GITHUB_OUTPUT
+              continue 2
+            fi
+
+            echo "Waiting for remote version to catch up..."
+            sleep 20
+          done
 
           CLIENT_TYPE="${config#openapi-generator.}"
           CLIENT_TYPE="${CLIENT_TYPE%.${OPENAPI_ENVIRONMENT_TAG}.yaml}"
