@@ -108,23 +108,6 @@ runs:
 
               case "$CLIENT_TYPE" in
                 java)
-                  mkdir -p ~/.m2 || true
-
-                  cat > ~/.m2/settings.xml << EOF
-                  <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                                        https://maven.apache.org/xsd/settings-1.0.0.xsd">
-                    <servers>
-                      <server>
-                        <id>github</id>
-                        <username>${{ github.repository_owner }}</username>
-                        <password>${{ env.GITHUB_TOKEN }}</password>
-                      </server>
-                    </servers>
-                  </settings>
-                  EOF
-
                   mvn org.codehaus.mojo:versions-maven-plugin:set -DnewVersion="${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && '-SNAPSHOT' || '' }}" -DgenerateBackupPoms=false
                   mvn deploy \
                     -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \
