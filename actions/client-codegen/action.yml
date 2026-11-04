@@ -23,6 +23,14 @@ runs:
         distribution: temurin
         java-version: '17'
 
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Install yaml-include
+      run: |
+        cargo install yaml-include --version 0.8.1 --locked
+        echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
     - name: Generate and publish client code
       shell: bash
       id: generate
@@ -44,7 +52,7 @@ runs:
 
           while true; do
             ATTEMPT=$(( ATTEMPT + 1 ))
-            ONLINE_VERSION=$(curl -fsSL $(yq '.inputSpec' $config) | jq -er '.info.version') || ONLINE_VERSION=""
+            ONLINE_VERSION=$(curl -fsSL $(yaml-include $config | yq '.inputSpec') | jq -er '.info.version') || ONLINE_VERSION=""
 
             if [[ "$ATTEMPT" -ge 60 ]]; then
               echo "Timedout for fetching online version"
@@ -98,7 +106,7 @@ runs:
             bash ./openapi-generator.$CLIENT_TYPE.sh
           else
             (
-              cd $(yq '.outputDir' $config)
+              cd $(yaml-include $config | yq '.outputDir')
 
               case "$CLIENT_TYPE" in
                 java)
