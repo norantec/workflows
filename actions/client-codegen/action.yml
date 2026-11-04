@@ -27,6 +27,7 @@ runs:
       uses: dtolnay/rust-toolchain@stable
 
     - name: Install yaml-include
+      shell: bash
       run: |
         cargo install yaml-include --version 0.8.1 --locked
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
