@@ -34,6 +34,12 @@ on:
         required: false
         default: VERSION
 
+      docker_run_options:
+        type: string
+        description: Run options
+        required: false
+        default: ''  
+
 jobs:
   init:
     runs-on: ubuntu-latest
@@ -111,7 +117,7 @@ jobs:
             docker run \
               -d \
               --restart always \
-              --name $TARGETED_CONTAINER_NAME \
+              --name $TARGETED_CONTAINER_NAME ${{ inputs.docker_run_options }} \
               $IMAGE
             docker system prune -a -f
 

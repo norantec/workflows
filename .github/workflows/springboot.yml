@@ -45,6 +45,12 @@ on:
         required: false
         default: ''
 
+      docker_run_options:
+        type: string
+        description: Run options
+        required: false
+        default: ''  
+
     secrets:
       docker_password:
         required: false
@@ -136,3 +142,4 @@ jobs:
       image_name: ${{ inputs.image_name }}
       disable_deploy: ${{ inputs.disable_deploy }}
       disable_generate_clients: ${{ inputs.disable_generate_clients }}
+      docker_run_options: ${{ inputs.docker_run_options }}
