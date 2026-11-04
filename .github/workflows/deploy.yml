@@ -13,14 +13,6 @@ on:
         type: string
         required: true
 
-      production_openapi_doc_url:
-        type: string
-        required: true
-
-      development_openapi_doc_url:
-        type: string
-        required: true
-
       disable_deploy:
         type: boolean
         required: false
@@ -138,17 +130,8 @@ jobs:
           production_branch_name: ${{ inputs.production_branch_name }}
           development_branch_name: ${{ inputs.development_branch_name }}
 
-      - name: Prepare other environment variables
-        run: |
-          if [[ "${{ env.RUNTIME }}" == "PRODUCTION" ]]; then
-            echo OPENAPI_DOC_URL=${{ inputs.production_openapi_doc_url }} >> $GITHUB_ENV
-          else
-            echo OPENAPI_DOC_URL=${{ inputs.development_openapi_doc_url }} >> $GITHUB_ENV
-          fi
-
       - name: Generate client code and publish
         uses: norantec/workflows/actions/client-codegen@main
         with:
           runtime: ${{ env.RUNTIME }}
-          openapi_doc_url: ${{ env.OPENAPI_DOC_URL }}
           current_version: ${{ env.RUNTIME_VERSION }}
