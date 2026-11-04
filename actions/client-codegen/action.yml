@@ -92,51 +92,63 @@ runs:
             --skip-overwrite \
             --skip-validate-spec
 
-          (
-            cd $(yq '.outputDir' $config)
+          if [[ -f ./openapi-generator.$CLIENT_TYPE.sh ]]; then
+            RUNTIME=${{ env.RUNTIME }} \
+            RUNTIME_VERSION=${{ env.RUNTIME_VERSION }} \
+            GITHUB_RUN_NUMBER=${{ github.run_number }} \
+            GITHUB_RUN_ATTEMPT=${{ github.run_attempt }} \
+            GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }} \
+            GITHUB_REPOSITORY=${{ github.repository }} \
+            GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
+            NPM_TOKEN=${{ env.NPM_TOKEN }} \
+            bash ./openapi-generator.$CLIENT_TYPE.sh
+          else
+            (
+              cd $(yq '.outputDir' $config)
 
-            case "$CLIENT_TYPE" in
-              java)
-                mkdir -p ~/.m2 || true
+              case "$CLIENT_TYPE" in
+                java)
+                  mkdir -p ~/.m2 || true
 
-                cat > ~/.m2/settings.xml << EOF
-                <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                                      https://maven.apache.org/xsd/settings-1.0.0.xsd">
-                  <servers>
-                    <server>
-                      <id>github</id>
-                      <username>${{ github.repository_owner }}</username>
-                      <password>${{ env.GITHUB_TOKEN }}</password>
-                    </server>
-                  </servers>
-                </settings>
-                EOF
+                  cat > ~/.m2/settings.xml << EOF
+                  <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                        https://maven.apache.org/xsd/settings-1.0.0.xsd">
+                    <servers>
+                      <server>
+                        <id>github</id>
+                        <username>${{ github.repository_owner }}</username>
+                        <password>${{ env.GITHUB_TOKEN }}</password>
+                      </server>
+                    </servers>
+                  </settings>
+                  EOF
 
-                mvn org.codehaus.mojo:versions-maven-plugin:set -DnewVersion="${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && '-SNAPSHOT' || '' }}" -DgenerateBackupPoms=false
-                mvn deploy \
-                  -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \
-                  -DrepositoryId=github
+                  mvn org.codehaus.mojo:versions-maven-plugin:set -DnewVersion="${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && '-SNAPSHOT' || '' }}" -DgenerateBackupPoms=false
+                  mvn deploy \
+                    -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }} \
+                    -DrepositoryId=github
 
-                ;;
-              typescript-axios)
-                npm install --legacy-peer-deps=true
-                npm run build
+                  ;;
+                typescript-axios)
+                  npm install --legacy-peer-deps=true
+                  npm run build
 
-                if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
-                  npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }} --no-git-tag-version --commit-hooks false
-                else
-                  npm version ${{ env.RUNTIME_VERSION }} --no-git-tag-version --commit-hooks false
-                fi
+                  if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
+                    npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }} --no-git-tag-version --commit-hooks false
+                  else
+                    npm version ${{ env.RUNTIME_VERSION }} --no-git-tag-version --commit-hooks false
+                  fi
 
-                npm publish --tag latest
+                  npm publish --tag latest
 
-                ;;
-              *)
-                echo "No targeted publisher for $CLIENT_TYPE"
-                ;;
-            esac
-          )
+                  ;;
+                *)
+                  echo "No targeted publisher for $CLIENT_TYPE"
+                  ;;
+              esac
+            )
+          fi
 
         done
