@@ -104,6 +104,9 @@ runs:
         env_args+=("GITHUB_TOKEN=${{ env.GITHUB_TOKEN }}")
         env_args+=("RUNTIME_VERSION=${{ env.IMAGE_TAG }}")
         env_args+=("RUNTIME=${{ env.RUNTIME }}")
+        env_args+=("GITHUB_REPOSITORY=${{ github.repository }}")
+        env_args+=("GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}")
+        env_args+=("GITHUB_REF_NAME=${{ github.ref_name }}")
 
         env -i "${env_args[@]}" /bin/bash $BUILD_SCRIPT
 
