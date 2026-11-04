@@ -47,7 +47,7 @@ on:
 
     secrets:
       docker_password:
-        required: true
+        required: false
 
 permissions:
   contents: read
