@@ -46,10 +46,13 @@ runs:
       run: |
         if [ "${{ github.ref_name }}" = "${{ inputs.production_branch_name }}" ]; then
           RUNTIME="PRODUCTION"
+          ENV_SPECIFIER="production"
         elif [ "${{ github.ref_name }}" = "${{ inputs.development_branch_name }}" ]; then
           RUNTIME="DEVELOPMENT"
+          ENV_SPECIFIER="development"
         else
           RUNTIME="DAILY"
+          ENV_SPECIFIER="development"
         fi
 
         echo "Runtime: $RUNTIME"
@@ -61,7 +64,7 @@ runs:
           [[ -z "$key" || "$key" == \#* ]] && continue
           export "$key=$value"
           echo $key=$value >> $GITHUB_ENV
-        done < <(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -H 'Accept: */*' https://workflows-api.norantec.com/$(echo $RUNTIME | tr '[:upper:]' '[:lower:]')/env?_=$(date +%s%N))
+        done < <(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H "Cache-Control: no-cache, no-store" -H "Pragma: no-cache" -H 'Accept: */*' https://workflows-api.norantec.com/${ENV_SPECIFIER}/env?_=$(date +%s%N))
 
         IMAGE_TAG=$RUNTIME_VERSION-$RUNTIME.${{ github.run_number }}
 
