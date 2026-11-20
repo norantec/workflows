@@ -1,0 +1,50 @@
+name: Download release asset
+
+inputs:
+  tag_name:
+    type: string
+    required: false
+    default: ''
+
+  owner:
+    type: string
+    required: true
+
+  repo:
+    type: string
+    required: true
+
+  file_name:
+    type: string
+    required: true
+
+  token:
+    type: string
+    required: true
+
+  target_name:
+    type: string
+    rqeuired: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Download asset
+      shell: bash
+      run: |
+        API=https://api.github.com/repos/${{ inputs.owner }}/${{ inputs.repo }}
+        ASSET_ID=$(
+          curl -fsSL -H "Authorization: Bearer ${{ inputs.token }}" "$API/releases/${{ inputs.tag_name != '' && format('tags/{0}', inputs.tag_name) || 'latest' }}" | jq -r --arg name "$ASSET_NAME" '.assets[] | select(.name == $name) | .id' | head -n 1
+        )
+
+        if [ -z "$ASSET_ID" ]; then
+          echo "Asset not found: ${{ inputs.file_name }}" >&2
+          exit 1
+        fi
+
+        curl -fsSL \
+          -H "Authorization: Bearer ${{ inputs.token }}" \
+          -H "Accept: application/octet-stream" \
+          "$API/releases/assets/$ASSET_ID" \
+          -o "${{ inputs.target_name != '' && inputs.target_name || inputs.file_name }}"
