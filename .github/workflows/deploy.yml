@@ -68,7 +68,14 @@ jobs:
         run: |
           ID_TOKEN=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" $ACTIONS_ID_TOKEN_REQUEST_URL&audience=norantec)
           ID_TOKEN=$(echo $ID_TOKEN | jq -r '.value')
-          echo DEPLOY_HOSTS=$(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H 'Accept: */*' https://workflows-api.norantec.com/$(echo $RUNTIME | tr '[:upper:]' '[:lower:]')/hosts) >> $GITHUB_OUTPUT
+
+          if [ "${{ env.RUNTIME }}" = "PRODUCTION" ]; then
+            ENV_SPECIFIER="production"
+          else
+            ENV_SPECIFIER="development"
+          fi
+
+          echo DEPLOY_HOSTS=$(curl -L -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $ID_TOKEN" -H 'Accept: */*' https://workflows-api.norantec.com/${ENV_SPECIFIER}/hosts) >> $GITHUB_OUTPUT
 
   deploy:
     needs: init
