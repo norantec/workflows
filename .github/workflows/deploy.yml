@@ -9,6 +9,12 @@ on:
         required: false
         default: master
 
+      development_branch_name:
+        type: string
+        description: Production branch name
+        required: false
+        default: beta
+
       image_name:
         type: string
         required: true

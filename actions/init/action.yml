@@ -55,6 +55,9 @@ runs:
           ENV_SPECIFIER="development"
         fi
 
+        echo "Production branch name: ${{ inputs.production_branch_name }}"
+        echo "Development branch name: ${{ inputs.development_branch_name }}"
+        echo "Current branch name: ${{ github.ref_name }}"
         echo "Runtime: $RUNTIME"
 
         ID_TOKEN=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" $ACTIONS_ID_TOKEN_REQUEST_URL&audience=norantec)
