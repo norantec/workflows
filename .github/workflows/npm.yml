@@ -69,6 +69,8 @@ jobs:
           fi
 
       - name: Publish package
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
         if: ${{ github.ref_name == inputs.production_branch_name || github.ref_name == inputs.development_branch_name }}
         run: |
           npm publish --tag latest
