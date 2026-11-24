@@ -113,6 +113,8 @@ runs:
             (
               cd $(yq '.outputDir' $FINAL_CONFIG_FILE_NAME)
 
+              echo "Working in $(pwd)"
+
               case "$CLIENT_TYPE" in
                 java)
                   mvn org.codehaus.mojo:versions-maven-plugin:set -DnewVersion="${{ env.RUNTIME_VERSION }}${{ env.RUNTIME != 'PRODUCTION' && '-SNAPSHOT' || '' }}" -DgenerateBackupPoms=false
