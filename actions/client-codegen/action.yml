@@ -90,8 +90,12 @@ runs:
 
           echo "Generating client code for $CLIENT_TYPE..."
 
+          FINAL_CONFIG_FILE_NAME="./openapi-generator.final.yaml"
+
+          yaml-include $config | yq '(.<< // {}) *d .' - > $FINAL_CONFIG_FILE_NAME
+
           npx @openapitools/openapi-generator-cli generate \
-            -c "$config" \
+            -c $FINAL_CONFIG_FILE_NAME \
             --skip-overwrite \
             --skip-validate-spec
 
@@ -107,7 +111,7 @@ runs:
             bash ./openapi-generator.$CLIENT_TYPE.sh
           else
             (
-              cd $(yaml-include $config | yq '.outputDir')
+              cd $(yq '.outputDir' $FINAL_CONFIG_FILE_NAME)
 
               case "$CLIENT_TYPE" in
                 java)
