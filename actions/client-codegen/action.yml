@@ -127,6 +127,18 @@ runs:
                   npm install --legacy-peer-deps=true
                   npm run build
 
+                  find . -name '*.d.ts' -type f -print0 |
+                    while IFS= read -r -d '' file; do
+                      perl -0pi -e '
+                        s/globalAxios\.AxiosResponse/AxiosResponse/g;
+
+                        if (/globalAxios.*from\s+["\x27]axios["\x27]/ &&
+                            !/import type \{[^}]*\bAxiosResponse\b[^}]*\} from ["\x27]axios["\x27]/) {
+                          s/(import type \{)([^}]*)(\} from ["\x27]axios["\x27])/$1$2, AxiosResponse$3/;
+                        }
+                      ' "$file"
+                    done
+
                   if [[ "${{ env.RUNTIME }}" != "PRODUCTION" ]]; then
                     npm version ${{ env.RUNTIME_VERSION }}-beta.${{ github.run_number }}.${{ github.run_attempt }} --no-git-tag-version --commit-hooks false
                   else
